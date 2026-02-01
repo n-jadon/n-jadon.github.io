@@ -20,86 +20,214 @@
     background: radial-gradient(circle at top, #1f1f1f, var(--bg-dark));
     color: var(--text-main);
     min-height: 100vh;
-    padding-bottom: 100px; /* Space for FAB */
+    padding-bottom: 100px;
   }
 
-  /* --- HEADER & CLOCK --- */
+  /* --- HEADER --- */
   header {
-    padding: 30px 40px;
+    padding: 20px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(11, 11, 11, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative; /* For calendar positioning */
   }
 
   .header-left h1 {
-    font-size: 26px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 800;
     margin: 0;
     letter-spacing: -0.5px;
+    background: linear-gradient(to right, #ffffff, #aaaaaa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  .datetime {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-top: 4px;
-    font-weight: 500;
+  /* --- CLOCK PILL (Clickable) --- */
+  .datetime-pill {
+    font-size: 12px;
+    color: #ccc;
+    font-weight: 600;
+    background: rgba(255,255,255,0.1);
+    padding: 6px 14px;
+    border-radius: 20px;
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    user-select: none;
   }
+
+  .datetime-pill:hover, .datetime-pill.active {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.2);
+    color: white;
+  }
+
+  /* --- CALENDAR POPUP --- */
+  .calendar-popup {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    width: 280px;
+    background: #1c1c1c;
+    border: 1px solid #333;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    padding: 20px;
+    z-index: 200;
+    display: none; /* Hidden by default */
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .calendar-popup.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .cal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .cal-month-name {
+    font-weight: 700;
+    font-size: 16px;
+    color: white;
+  }
+
+  .cal-nav-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .cal-nav-btn:hover { background: #333; color: white; }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    text-align: center;
+  }
+
+  .cal-day-name {
+    font-size: 11px;
+    color: #666;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .cal-day {
+    font-size: 13px;
+    color: #ddd;
+    padding: 8px 0;
+    border-radius: 8px;
+    cursor: default;
+  }
+
+  .cal-day:hover { background: #2a2a2a; }
+  .cal-day.today { background: var(--accent); color: white; font-weight: 700; }
+  .cal-day.empty { pointer-events: none; }
 
   /* --- HEADER ACTIONS --- */
   .header-actions {
     display: flex;
-    gap: 15px;
+    gap: 16px;
     align-items: center;
     flex-grow: 1;
     justify-content: flex-end;
   }
 
   .btn-header {
-    background: #2a2a2a;
+    background: linear-gradient(135deg, #2a2a2a, #222);
     border: 1px solid #333;
-    color: #ddd;
-    padding: 10px 16px;
-    border-radius: 20px;
+    color: #e0e0e0;
+    padding: 10px 18px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
 
   .btn-header:hover {
     background: #333;
     border-color: #555;
     color: #fff;
+    transform: translateY(-1px);
+  }
+
+  .profile-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #b20710);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(229, 9, 20, 0.4);
+    border: 2px solid rgba(255,255,255,0.1);
   }
 
   /* --- SEARCH BAR --- */
   .search-box {
     position: relative;
     width: 100%;
-    max-width: 300px;
+    max-width: 280px;
   }
 
   .search-box input {
     width: 100%;
-    background: #1b1b1b;
+    background: #151515;
     color: white;
     border: 1px solid #333;
     padding: 10px 16px;
-    padding-left: 40px;
-    border-radius: 30px;
+    padding-left: 42px;
+    border-radius: 12px;
     outline: none;
     font-size: 14px;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
     box-sizing: border-box;
   }
 
   .search-box input:focus {
     border-color: var(--accent);
+    background: #000;
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15);
   }
 
   .search-icon {
@@ -112,40 +240,27 @@
   }
 
   /* --- SECTIONS & CARDS --- */
-  .section-container {
-    padding-bottom: 10px;
-  }
+  .section-container { padding-top: 20px; }
 
   h2 {
-    margin: 30px 40px 15px;
-    font-weight: 600;
-    font-size: 18px;
-    color: #eee;
+    margin: 10px 40px 15px;
+    font-weight: 700;
+    font-size: 19px;
+    color: #f0f0f0;
     display: flex;
     align-items: center;
     gap: 12px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
   }
 
-  /* Delete Section Button */
   .delete-section-btn {
-    font-size: 18px;
-    color: #555;
-    cursor: pointer;
-    transition: color 0.2s;
-    display: none; /* Hidden by default */
+    font-size: 18px; color: #555; cursor: pointer; transition: color 0.2s; display: none;
   }
   
-  h2:hover .delete-section-btn {
-    display: block;
-  }
+  h2:hover .delete-section-btn { display: block; }
+  .delete-section-btn:hover { color: var(--accent); }
 
-  .delete-section-btn:hover {
-    color: var(--accent);
-  }
-
-  .section {
-    padding: 0 40px 10px;
-  }
+  .section { padding: 0 40px 10px; }
 
   .cards {
     display: grid;
@@ -155,7 +270,7 @@
 
   .card {
     background: linear-gradient(145deg, #232323, #1a1a1a);
-    border-radius: 16px;
+    border-radius: 18px;
     aspect-ratio: 1 / 1;
     display: flex;
     flex-direction: column;
@@ -163,213 +278,84 @@
     justify-content: center;
     cursor: pointer;
     position: relative;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid rgba(255,255,255,0.03);
   }
 
   .card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(1.02);
     background: #2a2a2a;
-    border-color: #333;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    border-color: #444;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
   }
 
   .card img {
-    width: 42px;
-    height: 42px;
-    margin-bottom: 12px;
-    border-radius: 8px;
+    width: 44px; height: 44px; margin-bottom: 12px; border-radius: 10px;
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
   }
 
   .card span {
-    font-size: 13px;
-    color: #ddd;
-    text-align: center;
-    padding: 0 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    font-size: 13px; color: #ddd; text-align: center; padding: 0 10px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; font-weight: 500;
   }
 
-  /* --- DELETE SITE BUTTON --- */
   .delete {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 22px;
-    height: 22px;
-    background: rgba(0,0,0,0.5);
-    color: #fff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s, background 0.2s;
-    line-height: 1;
+    position: absolute; top: 8px; right: 8px; width: 24px; height: 24px;
+    background: rgba(0,0,0,0.6); color: #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    cursor: pointer; opacity: 0; transition: opacity 0.2s, background 0.2s;
   }
 
-  .delete:hover {
-    background: var(--accent);
-  }
+  .delete:hover { background: var(--accent); }
+  .card:hover .delete { opacity: 1; }
 
-  .card:hover .delete {
-    opacity: 1;
-  }
-
-  /* --- FLOATING ADD BUTTON --- */
+  /* --- MODAL & FAB --- */
   .fab-btn {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 60px;
-    height: 60px;
-    background: var(--accent);
-    color: white;
-    border-radius: 50%;
-    border: none;
-    font-size: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 10px 30px rgba(229, 9, 20, 0.4);
-    cursor: pointer;
-    transition: transform 0.2s;
-    z-index: 50;
+    position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+    background: linear-gradient(135deg, var(--accent), #b20710); color: white;
+    border-radius: 50%; border: none; font-size: 32px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 30px rgba(229, 9, 20, 0.5); cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s; z-index: 90;
   }
+  .fab-btn:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 15px 40px rgba(229, 9, 20, 0.7); }
 
-  .fab-btn:hover {
-    transform: scale(1.1);
-  }
-
-  /* --- MODAL POPUP --- */
   .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(5px);
-    z-index: 1000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+    z-index: 1000; display: none; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s;
   }
-
-  .modal-overlay.active {
-    display: flex;
-    opacity: 1;
-  }
+  .modal-overlay.active { display: flex; opacity: 1; }
 
   .modal-content {
-    background: #1c1c1c;
-    width: 90%;
-    max-width: 400px;
-    padding: 30px;
-    border-radius: 20px;
-    border: 1px solid #333;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-    transform: translateY(20px);
-    transition: transform 0.3s;
+    background: #1c1c1c; width: 90%; max-width: 400px; padding: 30px;
+    border-radius: 20px; border: 1px solid #333;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    transform: translateY(20px); transition: transform 0.3s;
   }
-
-  .modal-overlay.active .modal-content {
-    transform: translateY(0);
-  }
-
-  .modal-content h3 {
-    margin: 0 0 20px 0;
-    font-size: 20px;
-  }
-
-  .form-group {
-    margin-bottom: 15px;
-  }
-
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 13px;
-    color: #aaa;
-  }
-
+  .modal-overlay.active .modal-content { transform: translateY(0); }
+  .modal-content h3 { margin: 0 0 20px 0; font-size: 20px; color: #fff; }
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; margin-bottom: 8px; font-size: 13px; color: #aaa; }
+  
   .modal-input {
-    width: 100%;
-    background: #2a2a2a;
-    color: white;
-    border: 1px solid #444;
-    padding: 12px;
-    border-radius: 8px;
-    box-sizing: border-box;
-    outline: none;
+    width: 100%; background: #2a2a2a; color: white; border: 1px solid #444;
+    padding: 12px; border-radius: 8px; box-sizing: border-box; outline: none;
   }
+  .modal-input:focus { border-color: var(--accent); }
 
-  .modal-input:focus {
-    border-color: var(--accent);
-  }
+  .modal-actions { display: flex; gap: 10px; margin-top: 25px; }
+  .btn-cancel { background: transparent; border: 1px solid #444; color: #ccc; flex: 1; padding: 12px; border-radius: 8px; cursor: pointer; }
+  .btn-add { background: var(--accent); border: none; color: white; flex: 2; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
 
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 25px;
-  }
-
-  .btn-cancel {
-    background: transparent;
-    border: 1px solid #444;
-    color: #ccc;
-    flex: 1;
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-
-  .btn-add {
-    background: var(--accent);
-    border: none;
-    color: white;
-    flex: 2;
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  /* --- TOAST --- */
   #undoToast {
-    position: fixed;
-    bottom: 30px;
-    left: 30px;
-    background: #252525;
-    padding: 16px 24px;
-    border-radius: 12px;
-    border: 1px solid #333;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    display: none;
-    z-index: 100;
-    animation: slideUp 0.3s ease;
+    position: fixed; bottom: 30px; left: 30px; background: #252525; padding: 14px 24px;
+    border-radius: 12px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    display: none; z-index: 100; animation: slideUp 0.3s ease;
   }
-
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  #undoToast button {
-    background: none;
-    color: #5daaff;
-    padding: 0;
-    margin-left: 15px;
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  #undoToast button { background: none; color: #5daaff; padding: 0; margin-left: 15px; border: none; font-size: 14px; cursor: pointer; }
 </style>
 </head>
 
@@ -377,45 +363,56 @@
 
 <header>
   <div class="header-left">
-    <h1>My Personal Dashboard</h1>
-    <div class="datetime" id="clock">Loading date...</div>
+    <h1>My Dashboard</h1>
+    
+    <div class="datetime-pill" onclick="toggleCalendar(event)" id="datePill">
+      <span>📅</span>
+      <span id="clock">Loading...</span>
+    </div>
+
+    <div class="calendar-popup" id="calendarPopup" onclick="event.stopPropagation()">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">&lt;</button>
+        <div class="cal-month-name" id="calMonthName">Month</div>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">&gt;</button>
+      </div>
+      <div class="cal-grid" id="calGrid">
+        </div>
+    </div>
   </div>
 
   <div class="header-actions">
-    <button class="btn-header" onclick="addCategory()">
-      <span>+ Add Section</span>
-    </button>
-    
     <div class="search-box">
-      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       <input id="search" placeholder="Search Google..." autocomplete="off" />
     </div>
+
+    <button class="btn-header" onclick="addCategory()">
+      <span>+ Section</span>
+    </button>
+    
+    <div class="profile-icon">JS</div>
   </div>
 </header>
 
 <div id="dashboard-container"></div>
-
 <button class="fab-btn" onclick="openModal()">+</button>
 
 <div class="modal-overlay" id="addModal" onclick="closeModal(event)">
   <div class="modal-content">
     <h3>Add New Shortcut</h3>
-    
     <div class="form-group">
       <label>Category</label>
       <select id="modal-cat" class="modal-input"></select>
     </div>
-
     <div class="form-group">
       <label>Website Name</label>
       <input id="modal-name" class="modal-input" placeholder="e.g. GitHub">
     </div>
-
     <div class="form-group">
       <label>URL</label>
       <input id="modal-url" class="modal-input" placeholder="e.g. github.com">
     </div>
-
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
       <button class="btn-add" onclick="addSite()">Add Site</button>
@@ -430,7 +427,6 @@
 
 <script>
 /* ================= DATA & MIGRATION ================= */
-
 const DEFAULT_DATA = {
   "Movie Night": [
     { name:"Netflix", url:"https://www.netflix.com", default: true },
@@ -450,38 +446,121 @@ const DEFAULT_DATA = {
   ]
 };
 
-// LOAD SITES
 let sites = JSON.parse(localStorage.getItem("sites"));
 
-// MIGRATION SCRIPT:
-// If the user has old data with keys like "movie" (lowercase), 
-// we convert them to "Movie Night" so they display nicely.
 if (sites && sites.movie) {
     if(sites.movie) { sites["Movie Night"] = sites.movie; delete sites.movie; }
     if(sites.daily) { sites["Daily"] = sites.daily; delete sites.daily; }
     if(sites.study) { sites["Study"] = sites.study; delete sites.study; }
     localStorage.setItem("sites", JSON.stringify(sites));
 }
-
-// If no data exists, use defaults
 if (!sites) {
   sites = JSON.parse(JSON.stringify(DEFAULT_DATA));
   localStorage.setItem("sites", JSON.stringify(sites));
 }
 
-/* ================= STATE ================= */
-let lastDeleted = null;
-let undoTimer = null;
+/* ================= CLOCK & CALENDAR LOGIC ================= */
 
+// Clock
 function updateClock() {
     const now = new Date();
-    const options = { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    const options = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     document.getElementById('clock').innerText = now.toLocaleDateString('en-US', options);
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-/* ================= HELPERS ================= */
+// Calendar State
+let calendarDate = new Date(); // The month being viewed
+let today = new Date(); // The actual today
+
+function toggleCalendar(event) {
+    if(event) event.stopPropagation();
+    const popup = document.getElementById("calendarPopup");
+    const pill = document.getElementById("datePill");
+    
+    // Reset view to current month when opening
+    if (popup.style.display !== "block") {
+        calendarDate = new Date(); 
+        renderCalendar();
+    }
+
+    if (popup.classList.contains("show")) {
+        popup.classList.remove("show");
+        pill.classList.remove("active");
+        setTimeout(() => popup.style.display = "none", 200); // Wait for fade out
+    } else {
+        popup.style.display = "block";
+        // Small delay to allow CSS transition to catch the "display: block"
+        setTimeout(() => {
+             popup.classList.add("show");
+             pill.classList.add("active");
+        }, 10);
+    }
+}
+
+function changeMonth(step) {
+    calendarDate.setMonth(calendarDate.getMonth() + step);
+    renderCalendar();
+}
+
+function renderCalendar() {
+    const grid = document.getElementById("calGrid");
+    const monthName = document.getElementById("calMonthName");
+    
+    // Set Header (e.g., "February 2026")
+    monthName.innerText = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    
+    grid.innerHTML = "";
+    
+    // Day Names Row (Mo Tu We...)
+    const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+    days.forEach(d => {
+        const div = document.createElement("div");
+        div.className = "cal-day-name";
+        div.innerText = d;
+        grid.appendChild(div);
+    });
+
+    // Calculate dates
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    
+    const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Empty slots for days before 1st of month
+    for(let i=0; i<firstDay; i++) {
+        const empty = document.createElement("div");
+        empty.className = "cal-day empty";
+        grid.appendChild(empty);
+    }
+
+    // Days of the month
+    for(let i=1; i<=daysInMonth; i++) {
+        const dayDiv = document.createElement("div");
+        dayDiv.className = "cal-day";
+        dayDiv.innerText = i;
+        
+        // Highlight Today
+        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+            dayDiv.classList.add("today");
+        }
+        
+        grid.appendChild(dayDiv);
+    }
+}
+
+// Close calendar when clicking outside
+window.addEventListener("click", (e) => {
+    const popup = document.getElementById("calendarPopup");
+    const pill = document.getElementById("datePill");
+    if (popup.classList.contains("show") && !popup.contains(e.target) && !pill.contains(e.target)) {
+        toggleCalendar();
+    }
+});
+
+/* ================= HELPERS & RENDER ================= */
 function getIcon(url) {
   try {
     const host = new URL(url).hostname;
@@ -492,21 +571,15 @@ function getIcon(url) {
   }
 }
 
-/* ================= DYNAMIC RENDER ================= */
 function render() {
   const container = document.getElementById("dashboard-container");
-  container.innerHTML = ""; // Clear existing
+  container.innerHTML = ""; 
 
-  // Loop through every category in 'sites' object
   Object.keys(sites).forEach(categoryName => {
-    
-    // 1. Create Section HTML
     const sectionDiv = document.createElement("div");
     sectionDiv.className = "section-container";
 
-    // 2. Header
     const title = document.createElement("h2");
-    // Get emoji based on name if possible, else default
     let icon = "📂";
     if(categoryName.toLowerCase().includes("movie")) icon = "🍿";
     else if(categoryName.toLowerCase().includes("study")) icon = "🎓";
@@ -517,23 +590,18 @@ function render() {
 
     title.innerHTML = `${icon} ${categoryName}`;
 
-    // Add Delete Section Button (Trash icon)
-    // Only allow deleting if section is empty OR user really wants to (here we restrict to empty for safety, or just non-default)
-    // For now: Allow deleting any section.
     const delSection = document.createElement("span");
     delSection.className = "delete-section-btn";
-    delSection.innerHTML = "&times;"; // "X" to delete section
+    delSection.innerHTML = "&times;"; 
     delSection.title = "Delete this section";
     delSection.onclick = () => deleteCategory(categoryName);
     
-    // Only show delete button if section is empty to prevent accidents
     if (sites[categoryName].length === 0) {
         title.appendChild(delSection);
     }
 
     sectionDiv.appendChild(title);
 
-    // 3. Cards Grid
     const grid = document.createElement("div");
     grid.className = "section";
     const cardsDiv = document.createElement("div");
@@ -573,12 +641,10 @@ function render() {
     sectionDiv.appendChild(grid);
     container.appendChild(sectionDiv);
   });
-
   localStorage.setItem("sites", JSON.stringify(sites));
 }
 
 /* ================= ACTIONS ================= */
-
 function addCategory() {
     const name = prompt("Enter name for new section (e.g., 'Work', 'Gaming'):");
     if (name) {
@@ -586,23 +652,19 @@ function addCategory() {
             alert("Category already exists!");
             return;
         }
-        sites[name] = []; // Create empty array
+        sites[name] = []; 
         render();
     }
 }
-
 function deleteCategory(catName) {
     if(confirm(`Remove the "${catName}" section?`)) {
         delete sites[catName];
         render();
     }
 }
-
 function openModal() {
   const modal = document.getElementById("addModal");
   const select = document.getElementById("modal-cat");
-  
-  // Populate dropdown dynamically from current sites keys
   select.innerHTML = "";
   Object.keys(sites).forEach(key => {
       const opt = document.createElement("option");
@@ -610,47 +672,35 @@ function openModal() {
       opt.innerText = key;
       select.appendChild(opt);
   });
-
   modal.classList.add("active");
   document.getElementById("modal-name").focus();
 }
-
 function closeModal(e) {
   if (!e || e.target === document.getElementById("addModal") || e.target.classList.contains("btn-cancel")) {
     document.getElementById("addModal").classList.remove("active");
   }
 }
-
 function addSite() {
   const cat = document.getElementById("modal-cat").value;
   const nameInput = document.getElementById("modal-name");
   const urlInput = document.getElementById("modal-url");
-  
   const name = nameInput.value.trim();
   let url = urlInput.value.trim();
-
   if (!name || !url) return alert("Enter name & URL");
   if (!url.startsWith("http")) url = "https://" + url;
-
   sites[cat].push({ name, url, default: false });
-  
   nameInput.value = "";
   urlInput.value = "";
-  
   document.getElementById("addModal").classList.remove("active");
   render();
 }
-
-/* ================= DELETE/UNDO ================= */
 function deleteSite(cat, index) {
   if(sites[cat][index].default) return; 
-
   lastDeleted = { cat, site: sites[cat][index], index };
   sites[cat].splice(index, 1);
   render();
   showUndo();
 }
-
 function showUndo() {
   const toast = document.getElementById("undoToast");
   toast.style.display = "block";
@@ -660,19 +710,14 @@ function showUndo() {
     lastDeleted = null;
   }, 4000);
 }
-
 function undoDelete() {
   if (!lastDeleted) return;
-  // If the category was deleted (rare edge case), recreate it
   if (!sites[lastDeleted.cat]) sites[lastDeleted.cat] = [];
-  
   sites[lastDeleted.cat].splice(lastDeleted.index, 0, lastDeleted.site);
   lastDeleted = null;
   document.getElementById("undoToast").style.display = "none";
   render();
 }
-
-/* ================= SEARCH ================= */
 const searchInput = document.getElementById("search");
 searchInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
@@ -683,12 +728,10 @@ searchInput.addEventListener("keydown", e => {
     searchInput.value = "";
   }
 });
-
 window.onload = () => {
     render();
     searchInput.focus();
 };
 </script>
-
 </body>
 </html>
