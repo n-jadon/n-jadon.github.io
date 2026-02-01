@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Smart Dashboard</title>
+
+<style>
+  :root {
+    --bg-dark: #0b0b0b;
+    --bg-card: #1c1c1c;
+    --accent: #e50914;
+    --text-main: #ffffff;
+    --text-muted: #aaaaaa;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(circle at top, #1f1f1f, var(--bg-dark));
+    color: var(--text-main);
+    min-height: 100vh;
+    padding-bottom: 100px; /* Space for FAB */
+  }
+
+  /* --- HEADER & CLOCK --- */
+  header {
+    padding: 30px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .header-left h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.5px;
+  }
+
+  .datetime {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  /* --- HEADER ACTIONS --- */
+  .header-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-grow: 1;
+    justify-content: flex-end;
+  }
+
+  .btn-header {
+    background: #2a2a2a;
+    border: 1px solid #333;
+    color: #ddd;
+    padding: 10px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-header:hover {
+    background: #333;
+    border-color: #555;
+    color: #fff;
+  }
+
+  /* --- SEARCH BAR --- */
+  .search-box {
+    position: relative;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .search-box input {
+    width: 100%;
+    background: #1b1b1b;
+    color: white;
+    border: 1px solid #333;
+    padding: 10px 16px;
+    padding-left: 40px;
+    border-radius: 30px;
+    outline: none;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .search-box input:focus {
+    border-color: var(--accent);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    pointer-events: none;
+  }
+
+  /* --- SECTIONS & CARDS --- */
+  .section-container {
+    padding-bottom: 10px;
+  }
+
+  h2 {
+    margin: 30px 40px 15px;
+    font-weight: 600;
+    font-size: 18px;
+    color: #eee;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Delete Section Button */
+  .delete-section-btn {
+    font-size: 18px;
+    color: #555;
+    cursor: pointer;
+    transition: color 0.2s;
+    display: none; /* Hidden by default */
+  }
+  
+  h2:hover .delete-section-btn {
+    display: block;
+  }
+
+  .delete-section-btn:hover {
+    color: var(--accent);
+  }
+
+  .section {
+    padding: 0 40px 10px;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    background: linear-gradient(145deg, #232323, #1a1a1a);
+    border-radius: 16px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    background: #2a2a2a;
+    border-color: #333;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  }
+
+  .card img {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+
+  .card span {
+    font-size: 13px;
+    color: #ddd;
+    text-align: center;
+    padding: 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* --- DELETE SITE BUTTON --- */
+  .delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s;
+    line-height: 1;
+  }
+
+  .delete:hover {
+    background: var(--accent);
+  }
+
+  .card:hover .delete {
+    opacity: 1;
+  }
+
+  /* --- FLOATING ADD BUTTON --- */
+  .fab-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    border: none;
+    font-size: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(229, 9, 20, 0.4);
+    cursor: pointer;
+    transition: transform 0.2s;
+    z-index: 50;
+  }
+
+  .fab-btn:hover {
+    transform: scale(1.1);
+  }
+
+  /* --- MODAL POPUP --- */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .modal-overlay.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .modal-content {
+    background: #1c1c1c;
+    width: 90%;
+    max-width: 400px;
+    padding: 30px;
+    border-radius: 20px;
+    border: 1px solid #333;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    transform: translateY(20px);
+    transition: transform 0.3s;
+  }
+
+  .modal-overlay.active .modal-content {
+    transform: translateY(0);
+  }
+
+  .modal-content h3 {
+    margin: 0 0 20px 0;
+    font-size: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #aaa;
+  }
+
+  .modal-input {
+    width: 100%;
+    background: #2a2a2a;
+    color: white;
+    border: 1px solid #444;
+    padding: 12px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    outline: none;
+  }
+
+  .modal-input:focus {
+    border-color: var(--accent);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+  }
+
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid #444;
+    color: #ccc;
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .btn-add {
+    background: var(--accent);
+    border: none;
+    color: white;
+    flex: 2;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  /* --- TOAST --- */
+  #undoToast {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    background: #252525;
+    padding: 16px 24px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    display: none;
+    z-index: 100;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  #undoToast button {
+    background: none;
+    color: #5daaff;
+    padding: 0;
+    margin-left: 15px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+  }
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>My Personal Dashboard</h1>
+    <div class="datetime" id="clock">Loading date...</div>
+  </div>
+
+  <div class="header-actions">
+    <button class="btn-header" onclick="addCategory()">
+      <span>+ Add Section</span>
+    </button>
+    
+    <div class="search-box">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input id="search" placeholder="Search Google..." autocomplete="off" />
+    </div>
+  </div>
+</header>
+
+<div id="dashboard-container"></div>
+
+<button class="fab-btn" onclick="openModal()">+</button>
+
+<div class="modal-overlay" id="addModal" onclick="closeModal(event)">
+  <div class="modal-content">
+    <h3>Add New Shortcut</h3>
+    
+    <div class="form-group">
+      <label>Category</label>
+      <select id="modal-cat" class="modal-input"></select>
+    </div>
+
+    <div class="form-group">
+      <label>Website Name</label>
+      <input id="modal-name" class="modal-input" placeholder="e.g. GitHub">
+    </div>
+
+    <div class="form-group">
+      <label>URL</label>
+      <input id="modal-url" class="modal-input" placeholder="e.g. github.com">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-add" onclick="addSite()">Add Site</button>
+    </div>
+  </div>
+</div>
+
+<div id="undoToast">
+  <span>Site removed</span>
+  <button onclick="undoDelete()">Undo</button>
+</div>
+
+<script>
+/* ================= DATA & MIGRATION ================= */
+
+const DEFAULT_DATA = {
+  "Movie Night": [
+    { name:"Netflix", url:"https://www.netflix.com", default: true },
+    { name:"Prime Video", url:"https://www.primevideo.com", default: true },
+    { name:"Jio Hotstar", url:"https://www.hotstar.com", default: true },
+    { name:"YouTube", url:"https://www.youtube.com", default: true }
+  ],
+  "Daily": [
+    { name:"Gmail", url:"https://mail.google.com", default: true },
+    { name:"YouTube", url:"https://www.youtube.com", default: true },
+    { name:"9Anime", url:"https://9anime.org.lv", default: true }
+  ],
+  "Study": [
+    { name:"LeetCode", url:"https://leetcode.com", default: true },
+    { name:"HackerRank", url:"https://www.hackerrank.com", default: true },
+    { name:"YouTube", url:"https://www.youtube.com", default: true }
+  ]
+};
+
+// LOAD SITES
+let sites = JSON.parse(localStorage.getItem("sites"));
+
+// MIGRATION SCRIPT:
+// If the user has old data with keys like "movie" (lowercase), 
+// we convert them to "Movie Night" so they display nicely.
+if (sites && sites.movie) {
+    if(sites.movie) { sites["Movie Night"] = sites.movie; delete sites.movie; }
+    if(sites.daily) { sites["Daily"] = sites.daily; delete sites.daily; }
+    if(sites.study) { sites["Study"] = sites.study; delete sites.study; }
+    localStorage.setItem("sites", JSON.stringify(sites));
+}
+
+// If no data exists, use defaults
+if (!sites) {
+  sites = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  localStorage.setItem("sites", JSON.stringify(sites));
+}
+
+/* ================= STATE ================= */
+let lastDeleted = null;
+let undoTimer = null;
+
+function updateClock() {
+    const now = new Date();
+    const options = { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    document.getElementById('clock').innerText = now.toLocaleDateString('en-US', options);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ================= HELPERS ================= */
+function getIcon(url) {
+  try {
+    const host = new URL(url).hostname;
+    if (host.includes("mail.google.com")) return "https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico";
+    return `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
+  } catch (e) {
+    return "https://www.google.com/s2/favicons?domain=google.com&sz=128";
+  }
+}
+
+/* ================= DYNAMIC RENDER ================= */
+function render() {
+  const container = document.getElementById("dashboard-container");
+  container.innerHTML = ""; // Clear existing
+
+  // Loop through every category in 'sites' object
+  Object.keys(sites).forEach(categoryName => {
+    
+    // 1. Create Section HTML
+    const sectionDiv = document.createElement("div");
+    sectionDiv.className = "section-container";
+
+    // 2. Header
+    const title = document.createElement("h2");
+    // Get emoji based on name if possible, else default
+    let icon = "📂";
+    if(categoryName.toLowerCase().includes("movie")) icon = "🍿";
+    else if(categoryName.toLowerCase().includes("study")) icon = "🎓";
+    else if(categoryName.toLowerCase().includes("daily")) icon = "📅";
+    else if(categoryName.toLowerCase().includes("work")) icon = "💼";
+    else if(categoryName.toLowerCase().includes("game")) icon = "🎮";
+    else if(categoryName.toLowerCase().includes("social")) icon = "💬";
+
+    title.innerHTML = `${icon} ${categoryName}`;
+
+    // Add Delete Section Button (Trash icon)
+    // Only allow deleting if section is empty OR user really wants to (here we restrict to empty for safety, or just non-default)
+    // For now: Allow deleting any section.
+    const delSection = document.createElement("span");
+    delSection.className = "delete-section-btn";
+    delSection.innerHTML = "&times;"; // "X" to delete section
+    delSection.title = "Delete this section";
+    delSection.onclick = () => deleteCategory(categoryName);
+    
+    // Only show delete button if section is empty to prevent accidents
+    if (sites[categoryName].length === 0) {
+        title.appendChild(delSection);
+    }
+
+    sectionDiv.appendChild(title);
+
+    // 3. Cards Grid
+    const grid = document.createElement("div");
+    grid.className = "section";
+    const cardsDiv = document.createElement("div");
+    cardsDiv.className = "cards";
+
+    sites[categoryName].forEach((site, index) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.title = site.url;
+
+      if (!site.default) {
+        const del = document.createElement("div");
+        del.className = "delete";
+        del.innerHTML = "&times;";
+        del.onclick = (e) => {
+          e.stopPropagation();
+          deleteSite(categoryName, index);
+        };
+        card.appendChild(del);
+      }
+      
+      card.onclick = () => window.open(site.url, "_blank");
+
+      const img = document.createElement("img");
+      img.src = getIcon(site.url);
+      img.onerror = () => { img.src = "https://www.google.com/s2/favicons?domain=google.com"; };
+
+      const name = document.createElement("span");
+      name.innerText = site.name;
+
+      card.appendChild(img);
+      card.appendChild(name);
+      cardsDiv.appendChild(card);
+    });
+
+    grid.appendChild(cardsDiv);
+    sectionDiv.appendChild(grid);
+    container.appendChild(sectionDiv);
+  });
+
+  localStorage.setItem("sites", JSON.stringify(sites));
+}
+
+/* ================= ACTIONS ================= */
+
+function addCategory() {
+    const name = prompt("Enter name for new section (e.g., 'Work', 'Gaming'):");
+    if (name) {
+        if (sites[name]) {
+            alert("Category already exists!");
+            return;
+        }
+        sites[name] = []; // Create empty array
+        render();
+    }
+}
+
+function deleteCategory(catName) {
+    if(confirm(`Remove the "${catName}" section?`)) {
+        delete sites[catName];
+        render();
+    }
+}
+
+function openModal() {
+  const modal = document.getElementById("addModal");
+  const select = document.getElementById("modal-cat");
+  
+  // Populate dropdown dynamically from current sites keys
+  select.innerHTML = "";
+  Object.keys(sites).forEach(key => {
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.innerText = key;
+      select.appendChild(opt);
+  });
+
+  modal.classList.add("active");
+  document.getElementById("modal-name").focus();
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById("addModal") || e.target.classList.contains("btn-cancel")) {
+    document.getElementById("addModal").classList.remove("active");
+  }
+}
+
+function addSite() {
+  const cat = document.getElementById("modal-cat").value;
+  const nameInput = document.getElementById("modal-name");
+  const urlInput = document.getElementById("modal-url");
+  
+  const name = nameInput.value.trim();
+  let url = urlInput.value.trim();
+
+  if (!name || !url) return alert("Enter name & URL");
+  if (!url.startsWith("http")) url = "https://" + url;
+
+  sites[cat].push({ name, url, default: false });
+  
+  nameInput.value = "";
+  urlInput.value = "";
+  
+  document.getElementById("addModal").classList.remove("active");
+  render();
+}
+
+/* ================= DELETE/UNDO ================= */
+function deleteSite(cat, index) {
+  if(sites[cat][index].default) return; 
+
+  lastDeleted = { cat, site: sites[cat][index], index };
+  sites[cat].splice(index, 1);
+  render();
+  showUndo();
+}
+
+function showUndo() {
+  const toast = document.getElementById("undoToast");
+  toast.style.display = "block";
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    toast.style.display = "none";
+    lastDeleted = null;
+  }, 4000);
+}
+
+function undoDelete() {
+  if (!lastDeleted) return;
+  // If the category was deleted (rare edge case), recreate it
+  if (!sites[lastDeleted.cat]) sites[lastDeleted.cat] = [];
+  
+  sites[lastDeleted.cat].splice(lastDeleted.index, 0, lastDeleted.site);
+  lastDeleted = null;
+  document.getElementById("undoToast").style.display = "none";
+  render();
+}
+
+/* ================= SEARCH ================= */
+const searchInput = document.getElementById("search");
+searchInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    let q = searchInput.value.trim();
+    if (!q) return;
+    let url = (q.includes(".") && !q.includes(" ")) ? (q.startsWith("http") ? q : "https://" + q) : "https://www.google.com/search?q=" + encodeURIComponent(q);
+    window.open(url, "_blank");
+    searchInput.value = "";
+  }
+});
+
+window.onload = () => {
+    render();
+    searchInput.focus();
+};
+</script>
+
+</body>
+</html>
