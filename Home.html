@@ -1,737 +1,2286 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Smart Dashboard</title>
+<meta name="color-scheme" content="dark light">
+<title>Home</title>
 
 <style>
+  /* ============================================================
+     THEME TOKENS
+     ============================================================ */
   :root {
-    --bg-dark: #0b0b0b;
-    --bg-card: #1c1c1c;
-    --accent: #e50914;
-    --text-main: #ffffff;
-    --text-muted: #aaaaaa;
+    --accent: #ff6b4a;
+    --radius-lg: 22px;
+    --radius: 16px;
+    --radius-sm: 10px;
+
+    --bg: #0a0a0c;
+    --bg-deep: #050506;
+    --surface: rgba(255, 255, 255, 0.045);
+    --surface-2: rgba(255, 255, 255, 0.075);
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.16);
+    --text: #f3f1ef;
+    --muted: #96939e;
+    --faint: #67646f;
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    --glow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+            0 12px 40px color-mix(in srgb, var(--accent) 22%, transparent);
+
+    --sans: "Segoe UI Variable Display", "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   }
+
+  html[data-theme="light"] {
+    --bg: #f4f0ea;
+    --bg-deep: #ece6dd;
+    --surface: rgba(24, 20, 18, 0.045);
+    --surface-2: rgba(24, 20, 18, 0.075);
+    --line: rgba(24, 20, 18, 0.10);
+    --line-strong: rgba(24, 20, 18, 0.20);
+    --text: #1c1917;
+    --muted: #6b6560;
+    --faint: #948d85;
+    --shadow: 0 24px 60px rgba(60, 45, 35, 0.18);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
 
   body {
     margin: 0;
-    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: radial-gradient(circle at top, #1f1f1f, var(--bg-dark));
-    color: var(--text-main);
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
-    padding-bottom: 100px;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* --- HEADER --- */
-  header {
-    padding: 20px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 20px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(11, 11, 11, 0.85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-  }
-
-  .header-left {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    position: relative; /* For calendar positioning */
-  }
-
-  .header-left h1 {
-    font-size: 24px;
-    font-weight: 800;
-    margin: 0;
-    letter-spacing: -0.5px;
-    background: linear-gradient(to right, #ffffff, #aaaaaa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  /* --- CLOCK PILL (Clickable) --- */
-  .datetime-pill {
-    font-size: 12px;
-    color: #ccc;
-    font-weight: 600;
-    background: rgba(255,255,255,0.1);
-    padding: 6px 14px;
-    border-radius: 20px;
-    width: fit-content;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid rgba(255,255,255,0.05);
-    cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
-    user-select: none;
-  }
-
-  .datetime-pill:hover, .datetime-pill.active {
-    background: rgba(255,255,255,0.15);
-    border-color: rgba(255,255,255,0.2);
-    color: white;
-  }
-
-  /* --- CALENDAR POPUP --- */
-  .calendar-popup {
-    position: absolute;
-    top: 60px;
-    left: 0;
-    width: 280px;
-    background: #1c1c1c;
-    border: 1px solid #333;
-    border-radius: 16px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-    padding: 20px;
-    z-index: 200;
-    display: none; /* Hidden by default */
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: opacity 0.2s, transform 0.2s;
-  }
-
-  .calendar-popup.show {
-    display: block;
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .cal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-  }
-
-  .cal-month-name {
-    font-weight: 700;
-    font-size: 16px;
-    color: white;
-  }
-
-  .cal-nav-btn {
-    background: none;
-    border: none;
-    color: #aaa;
-    cursor: pointer;
-    font-size: 18px;
-    padding: 4px 8px;
-    border-radius: 6px;
-  }
-  .cal-nav-btn:hover { background: #333; color: white; }
-
-  .cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    text-align: center;
-  }
-
-  .cal-day-name {
-    font-size: 11px;
-    color: #666;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-
-  .cal-day {
-    font-size: 13px;
-    color: #ddd;
-    padding: 8px 0;
-    border-radius: 8px;
-    cursor: default;
-  }
-
-  .cal-day:hover { background: #2a2a2a; }
-  .cal-day.today { background: var(--accent); color: white; font-weight: 700; }
-  .cal-day.empty { pointer-events: none; }
-
-  /* --- HEADER ACTIONS --- */
-  .header-actions {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    flex-grow: 1;
-    justify-content: flex-end;
-  }
-
-  .btn-header {
-    background: linear-gradient(135deg, #2a2a2a, #222);
-    border: 1px solid #333;
-    color: #e0e0e0;
-    padding: 10px 18px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  }
-
-  .btn-header:hover {
-    background: #333;
-    border-color: #555;
-    color: #fff;
-    transform: translateY(-1px);
-  }
-
-  .profile-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), #b20710);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 18px;
-    cursor: pointer;
-    box-shadow: 0 0 15px rgba(229, 9, 20, 0.4);
-    border: 2px solid rgba(255,255,255,0.1);
-  }
-
-  /* --- SEARCH BAR --- */
-  .search-box {
-    position: relative;
-    width: 100%;
-    max-width: 280px;
-  }
-
-  .search-box input {
-    width: 100%;
-    background: #151515;
-    color: white;
-    border: 1px solid #333;
-    padding: 10px 16px;
-    padding-left: 42px;
-    border-radius: 12px;
-    outline: none;
-    font-size: 14px;
-    transition: all 0.2s;
-    box-sizing: border-box;
-  }
-
-  .search-box input:focus {
-    border-color: var(--accent);
-    background: #000;
-    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15);
-  }
-
-  .search-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #666;
+  /* --- Ambient background --- */
+  .aurora {
+    position: fixed;
+    inset: -30vh -20vw;
+    z-index: -2;
+    filter: blur(90px);
+    opacity: 0.75;
     pointer-events: none;
   }
+  .aurora span {
+    position: absolute;
+    display: block;
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    animation: drift 26s ease-in-out infinite;
+  }
+  html[data-theme="light"] .aurora span { mix-blend-mode: multiply; opacity: 0.55; }
+  .aurora span:nth-child(1) {
+    width: 46vw; height: 46vw; left: 6%; top: 8%;
+    background: color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .aurora span:nth-child(2) {
+    width: 38vw; height: 38vw; right: 8%; top: 2%;
+    background: color-mix(in srgb, var(--accent) 22%, #3b82f6);
+    animation-delay: -9s;
+  }
+  .aurora span:nth-child(3) {
+    width: 42vw; height: 42vw; left: 34%; bottom: 0%;
+    background: color-mix(in srgb, var(--accent) 30%, #a855f7);
+    animation-delay: -17s;
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    33%      { transform: translate3d(4vw, -3vh, 0) scale(1.08); }
+    66%      { transform: translate3d(-3vw, 4vh, 0) scale(0.95); }
+  }
 
-  /* --- SECTIONS & CARDS --- */
-  .section-container { padding-top: 20px; }
+  .grain {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    opacity: 0.5;
+    background:
+      radial-gradient(120% 90% at 50% -10%, transparent 40%, var(--bg-deep) 100%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+  }
 
-  h2 {
-    margin: 10px 40px 15px;
-    font-weight: 700;
-    font-size: 19px;
-    color: #f0f0f0;
+  @media (prefers-reduced-motion: reduce) {
+    .aurora span { animation: none; }
+    * { transition-duration: 0.01ms !important; }
+  }
+
+  /* ============================================================
+     LAYOUT
+     ============================================================ */
+  .shell {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 26px 34px 140px;
+  }
+
+  /* --- Top bar --- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 34px;
+  }
+
+  .brand {
     display: flex;
     align-items: center;
     gap: 12px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    margin-right: auto;
   }
 
-  .delete-section-btn {
-    font-size: 18px; color: #555; cursor: pointer; transition: color 0.2s; display: none;
+  .avatar {
+    width: 42px; height: 42px;
+    border-radius: 14px;
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 15px; letter-spacing: 0.3px;
+    color: #fff;
+    background: linear-gradient(140deg, var(--accent), color-mix(in srgb, var(--accent) 40%, #111));
+    box-shadow: var(--glow);
+    border: 1px solid rgba(255,255,255,0.14);
+    cursor: pointer;
+    flex-shrink: 0;
   }
-  
-  h2:hover .delete-section-btn { display: block; }
-  .delete-section-btn:hover { color: var(--accent); }
 
-  .section { padding: 0 40px 10px; }
+  .brand-text { line-height: 1.25; }
+  .brand-text b { display: block; font-size: 14px; font-weight: 650; letter-spacing: -0.1px; }
+  .brand-text span { font-size: 12px; color: var(--muted); }
+
+  .icon-btn {
+    height: 40px; min-width: 40px;
+    padding: 0 12px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 12px;
+    cursor: pointer;
+    font: inherit; font-size: 13px; font-weight: 550;
+    backdrop-filter: blur(14px);
+    transition: background 0.18s, border-color 0.18s, transform 0.18s;
+  }
+  .icon-btn:hover { background: var(--surface-2); border-color: var(--line-strong); transform: translateY(-1px); }
+  .icon-btn:active { transform: translateY(0); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  /* --- Hero --- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 28px;
+    align-items: end;
+    margin-bottom: 26px;
+  }
+
+  .greeting {
+    font-family: var(--serif);
+    font-size: clamp(30px, 4.4vw, 50px);
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: -0.6px;
+    margin: 0 0 10px;
+    line-height: 1.08;
+  }
+  .greeting em {
+    font-style: normal;
+    background: linear-gradient(100deg, var(--accent), color-mix(in srgb, var(--accent) 45%, var(--text)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 34px; padding: 0 14px;
+    font-size: 12.5px; font-weight: 550; color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    backdrop-filter: blur(14px);
+    user-select: none;
+  }
+  button.pill { cursor: pointer; font-family: inherit; transition: color .18s, border-color .18s, background .18s; }
+  button.pill:hover, button.pill.active { color: var(--text); border-color: var(--line-strong); background: var(--surface-2); }
+
+  .clock-wrap { text-align: right; position: relative; }
+  .clock {
+    font-size: clamp(42px, 6vw, 68px);
+    font-weight: 250;
+    letter-spacing: -3px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .clock small { font-size: 0.34em; font-weight: 500; letter-spacing: 0; color: var(--muted); margin-left: 6px; }
+  .clock-date { font-size: 13px; color: var(--muted); margin-top: 8px; letter-spacing: 0.2px; }
+
+  /* --- Focus line --- */
+  .focus-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    backdrop-filter: blur(14px);
+    margin-bottom: 22px;
+  }
+  .focus-row .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.4px;
+    color: var(--accent); font-weight: 700; white-space: nowrap;
+  }
+  .focus-row input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font: inherit; font-size: 15px;
+  }
+  .focus-row input::placeholder { color: var(--faint); }
+
+  /* --- Search --- */
+  .searchbar {
+    position: relative;
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px 6px 18px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    backdrop-filter: blur(18px);
+    margin-bottom: 34px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .searchbar:focus-within {
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
+  }
+  .searchbar svg { width: 18px; height: 18px; color: var(--faint); flex-shrink: 0; }
+  .searchbar input {
+    flex: 1; min-width: 0; background: none; border: none; outline: none;
+    color: var(--text); font: inherit; font-size: 16px;
+    padding: 12px 0;
+  }
+  .searchbar input::placeholder { color: var(--faint); }
+
+  .engine-select {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 12px;
+    padding: 9px 10px;
+    font: inherit; font-size: 12.5px; font-weight: 550;
+    cursor: pointer; outline: none;
+  }
+  .engine-select option { background: #16151a; color: #eee; }
+  html[data-theme="light"] .engine-select option { background: #fff; color: #222; }
+
+  .kbd {
+    font-size: 11px; color: var(--faint);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 3px 7px; font-family: ui-monospace, "Cascadia Mono", monospace;
+    white-space: nowrap;
+  }
+
+  /* --- Sections --- */
+  .section { margin-bottom: 34px; }
+
+  .section-head {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 16px;
+  }
+  .section-head h2 {
+    font-size: 16px; font-weight: 650; letter-spacing: -0.2px;
+    margin: 0; display: flex; align-items: center; gap: 10px;
+  }
+  .section-head .emoji { font-size: 17px; }
+  .section-head .count {
+    font-size: 11px; color: var(--faint); font-weight: 600;
+    background: var(--surface); border: 1px solid var(--line);
+    padding: 2px 8px; border-radius: 999px;
+  }
+  .section-tools {
+    display: flex; gap: 4px; margin-left: 4px;
+    opacity: 0; transition: opacity 0.18s;
+  }
+  .section-head:hover .section-tools, .section-tools:focus-within { opacity: 1; }
+  .mini-btn {
+    width: 28px; height: 28px; display: grid; place-items: center;
+    background: none; border: 1px solid transparent; border-radius: 8px;
+    color: var(--faint); cursor: pointer; font-size: 14px; line-height: 1;
+    transition: color .15s, background .15s, border-color .15s;
+  }
+  .mini-btn:hover { color: var(--text); background: var(--surface-2); border-color: var(--line); }
+  .mini-btn.danger:hover { color: #fff; background: #e5484d; border-color: #e5484d; }
 
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+    gap: 14px;
   }
 
   .card {
-    background: linear-gradient(145deg, #232323, #1a1a1a);
-    border-radius: 18px;
-    aspect-ratio: 1 / 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
     position: relative;
-    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
-    border: 1px solid rgba(255,255,255,0.03);
+    aspect-ratio: 1 / 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    padding: 12px 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(16px);
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.22s cubic-bezier(.2,.8,.2,1), background 0.22s, border-color 0.22s, box-shadow 0.22s;
+  }
+  .card:hover, .card.focused {
+    transform: translateY(-5px);
+    background: var(--surface-2);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+    box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .card.focused { outline: none; }
+  .card.dragging { opacity: 0.35; }
+  .card.drop-target { border-color: var(--accent); border-style: dashed; }
+
+  .card .ico {
+    width: 46px; height: 46px; border-radius: 13px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35));
+  }
+  .card .letter {
+    width: 46px; height: 46px; border-radius: 13px;
+    display: grid; place-items: center;
+    font-size: 20px; font-weight: 700; color: #fff;
+    background: linear-gradient(140deg, var(--accent), color-mix(in srgb, var(--accent) 35%, #222));
+  }
+  .card .name {
+    font-size: 12.5px; font-weight: 550; color: var(--text);
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
-  .card:hover {
-    transform: translateY(-6px) scale(1.02);
-    background: #2a2a2a;
-    border-color: #444;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+  .card-tools {
+    position: absolute; top: 7px; right: 7px;
+    display: flex; gap: 3px;
+    opacity: 0; transition: opacity 0.16s;
+  }
+  .card:hover .card-tools { opacity: 1; }
+  .card-tools button {
+    width: 24px; height: 24px; border-radius: 8px;
+    display: grid; place-items: center;
+    background: rgba(0,0,0,0.55); color: #fff;
+    border: 1px solid rgba(255,255,255,0.12);
+    cursor: pointer; font-size: 12px; line-height: 1;
+    backdrop-filter: blur(6px);
+  }
+  .card-tools button:hover { background: var(--accent); }
+  .card-tools button.del:hover { background: #e5484d; }
+
+  .card.add-card {
+    border-style: dashed;
+    color: var(--faint);
+    background: transparent;
+  }
+  .card.add-card .plus { font-size: 26px; font-weight: 300; }
+  .card.add-card:hover { color: var(--text); }
+
+  .empty-note {
+    font-size: 13px; color: var(--faint);
+    padding: 26px; text-align: center;
+    border: 1px dashed var(--line); border-radius: var(--radius);
   }
 
-  .card img {
-    width: 44px; height: 44px; margin-bottom: 12px; border-radius: 10px;
-    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
+  /* ============================================================
+     DOCK + PANEL
+     ============================================================ */
+  .dock {
+    position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 8px;
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    box-shadow: var(--shadow);
+    z-index: 80;
+    transition: right 0.34s cubic-bezier(.2,.9,.2,1);
+  }
+  /* Slide the dock clear of the panel so views stay switchable. */
+  .dock.shifted { right: calc(min(430px, 100vw) + 20px); }
+  .dock button {
+    width: 44px; height: 44px;
+    display: grid; place-items: center;
+    background: none; border: 1px solid transparent; border-radius: 14px;
+    color: var(--muted); cursor: pointer; font-size: 18px;
+    transition: all 0.18s;
+    position: relative;
+  }
+  .dock button:hover { color: var(--text); background: var(--surface-2); }
+  .dock button.active {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  .dock button svg { width: 19px; height: 19px; }
+  .dock .dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    display: none;
+  }
+  .dock button.has-dot .dot { display: block; }
+
+  .panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(430px, 100vw);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    border-left: 1px solid var(--line);
+    backdrop-filter: blur(28px);
+    box-shadow: -30px 0 80px rgba(0,0,0,0.45);
+    transform: translateX(105%);
+    transition: transform 0.34s cubic-bezier(.2,.9,.2,1);
+    z-index: 70;
+    display: flex; flex-direction: column;
+  }
+  .panel.open { transform: translateX(0); }
+
+  .panel-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel-head h3 { margin: 0; font-size: 15px; font-weight: 650; flex: 1; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 18px; }
+  .panel-body::-webkit-scrollbar { width: 8px; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }
+
+  .panel-view { display: none; }
+  .panel-view.active { display: block; }
+
+  /* --- Notes --- */
+  #notesArea {
+    width: 100%; min-height: 420px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px;
+    color: var(--text); font: inherit; font-size: 14px; line-height: 1.7;
+    outline: none; resize: vertical;
+  }
+  #notesArea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+
+  /* --- Tasks --- */
+  .task-input {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .task-input input {
+    flex: 1; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; padding: 11px 14px; color: var(--text);
+    font: inherit; font-size: 14px; outline: none;
+  }
+  .task-input input:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+
+  .task {
+    display: flex; align-items: center; gap: 11px;
+    padding: 11px 12px; margin-bottom: 7px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .task .box {
+    width: 19px; height: 19px; border-radius: 6px; flex-shrink: 0;
+    border: 1.5px solid var(--line-strong); cursor: pointer;
+    display: grid; place-items: center; font-size: 11px; color: #fff;
+    transition: all 0.15s;
+  }
+  .task.done .box { background: var(--accent); border-color: var(--accent); }
+  .task.done .txt { color: var(--faint); text-decoration: line-through; }
+  .task .txt { flex: 1; word-break: break-word; }
+  .task .rm { opacity: 0; }
+  .task:hover .rm { opacity: 1; }
+
+  /* --- Timer --- */
+  .timer-face {
+    text-align: center; padding: 30px 0 24px;
+  }
+  .timer-time {
+    font-size: 64px; font-weight: 250; letter-spacing: -3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-mode { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-top: 6px; }
+  .timer-controls { display: flex; gap: 8px; justify-content: center; margin-top: 22px; }
+  .ring-wrap { display: grid; place-items: center; }
+  .ring { transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 6; stroke-linecap: round; }
+  .ring .bg { stroke: var(--line); }
+  .ring .fg { stroke: var(--accent); transition: stroke-dashoffset 0.4s linear; }
+  .ring-inner { position: absolute; text-align: center; }
+
+  /* --- AI chat --- */
+  .ai-wrap { display: flex; flex-direction: column; height: 100%; }
+  .chat-log { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .chat-log::-webkit-scrollbar { width: 8px; }
+  .chat-log::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }
+
+  .msg { max-width: 92%; font-size: 14px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+  .msg.user {
+    align-self: flex-end;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    border-radius: 16px 16px 4px 16px;
+    padding: 11px 14px;
+  }
+  .msg.bot {
+    align-self: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px 16px 16px 4px;
+    padding: 11px 14px;
+  }
+  .msg.err {
+    align-self: flex-start;
+    background: rgba(229, 72, 77, 0.12);
+    border: 1px solid rgba(229, 72, 77, 0.4);
+    border-radius: 12px; padding: 11px 14px; font-size: 13px;
+  }
+  .msg code {
+    background: var(--surface-2); padding: 1px 5px; border-radius: 5px;
+    font-family: ui-monospace, "Cascadia Mono", monospace; font-size: 0.9em;
+  }
+  .msg pre {
+    background: var(--bg-deep); border: 1px solid var(--line);
+    padding: 12px; border-radius: 10px; overflow-x: auto; margin: 8px 0;
+  }
+  .msg pre code { background: none; padding: 0; }
+
+  .typing span {
+    display: inline-block; width: 6px; height: 6px; margin-right: 4px;
+    border-radius: 50%; background: var(--muted);
+    animation: blink 1.3s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.18s; }
+  .typing span:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes blink { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 18px 10px; }
+  .chip {
+    font-size: 12px; padding: 6px 11px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--muted); cursor: pointer; font-family: inherit;
+    transition: all 0.16s;
+  }
+  .chip:hover { color: var(--text); border-color: var(--line-strong); background: var(--surface-2); }
+
+  .composer {
+    display: flex; gap: 8px; align-items: flex-end;
+    padding: 12px 18px 18px;
+    border-top: 1px solid var(--line);
+  }
+  .composer textarea {
+    flex: 1; resize: none; max-height: 140px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 12px 14px;
+    color: var(--text); font: inherit; font-size: 14px; line-height: 1.5;
+    outline: none;
+  }
+  .composer textarea:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .send-btn {
+    width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0;
+    display: grid; place-items: center;
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+    transition: filter 0.16s, transform 0.16s;
+  }
+  .send-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  .send-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+  .send-btn svg { width: 18px; height: 18px; }
+
+  .setup-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px;
+    font-size: 13.5px; line-height: 1.7; color: var(--muted);
+  }
+  .setup-card h4 { margin: 0 0 10px; color: var(--text); font-size: 15px; }
+  .setup-card ol { padding-left: 18px; margin: 10px 0; }
+  .setup-card a { color: var(--accent); }
+  .setup-card .btn { display: block; margin-top: 16px; }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--faint); font-weight: 700; margin-bottom: 7px;
+  }
+  .field input[type="text"], .field input[type="password"], .field select, .field textarea {
+    width: 100%;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; padding: 11px 13px;
+    color: var(--text); font: inherit; font-size: 14px; outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .field select option { background: #16151a; color: #eee; }
+  html[data-theme="light"] .field select option { background: #fff; color: #222; }
+  .field .hint { font-size: 11.5px; color: var(--faint); margin-top: 6px; line-height: 1.5; }
+
+  .btn {
+    padding: 11px 16px; border-radius: 12px; cursor: pointer;
+    font: inherit; font-size: 13.5px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text);
+    transition: all 0.16s;
+  }
+  .btn:hover { background: var(--surface-2); border-color: var(--line-strong); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.12); }
+  .btn.ghost { background: none; }
+  .btn.danger { color: #ff8a8d; border-color: rgba(229,72,77,0.35); }
+  .btn.danger:hover { background: rgba(229,72,77,0.14); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .divider { height: 1px; background: var(--line); margin: 22px 0; }
+
+  .swatches { display: flex; gap: 9px; flex-wrap: wrap; }
+  .swatch {
+    width: 32px; height: 32px; border-radius: 11px; cursor: pointer;
+    border: 2px solid transparent; transition: transform 0.15s;
+  }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.on { border-color: var(--text); }
+
+  .seg { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
+  .seg button {
+    flex: 1; padding: 8px; border: none; background: none; border-radius: 9px;
+    color: var(--muted); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
+  }
+  .seg button.on { background: var(--surface-2); color: var(--text); }
+
+  /* ============================================================
+     CALENDAR
+     ============================================================ */
+  .cal {
+    position: absolute; top: calc(100% + 12px); right: 0;
+    width: 288px; padding: 18px;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(24px);
+    z-index: 90; text-align: left;
+    opacity: 0; transform: translateY(-8px); pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .cal.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-head b { font-size: 14px; font-weight: 650; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .cal-dn { font-size: 10px; color: var(--faint); font-weight: 700; padding-bottom: 6px; letter-spacing: 0.5px; }
+  .cal-d {
+    font-size: 12.5px; color: var(--muted); padding: 7px 0; border-radius: 9px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cal-d:not(.empty):hover { background: var(--surface-2); color: var(--text); }
+  .cal-d.today { background: var(--accent); color: #fff; font-weight: 700; }
+  .cal-d.empty { visibility: hidden; }
+
+  /* ============================================================
+     MODAL / TOAST
+     ============================================================ */
+  .overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; transition: opacity 0.22s;
+  }
+  .overlay.open { display: flex; opacity: 1; }
+  .modal {
+    width: 100%; max-width: 420px;
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    border: 1px solid var(--line-strong);
+    border-radius: 24px; padding: 26px;
+    box-shadow: var(--shadow);
+    transform: translateY(14px) scale(0.98);
+    transition: transform 0.24s cubic-bezier(.2,.9,.2,1);
+  }
+  .overlay.open .modal { transform: none; }
+  .modal h3 { margin: 0 0 20px; font-size: 18px; font-weight: 650; }
+
+  .emoji-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .emoji-row button {
+    width: 38px; height: 38px; border-radius: 11px; font-size: 18px;
+    background: var(--surface); border: 1px solid var(--line);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .emoji-row button:hover { background: var(--surface-2); }
+  .emoji-row button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+
+  .toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 18px;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px);
+    font-size: 13.5px;
+    z-index: 120;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.22s, transform 0.22s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .toast button {
+    background: none; border: none; color: var(--accent);
+    font: inherit; font-weight: 650; cursor: pointer; padding: 0;
   }
 
-  .card span {
-    font-size: 13px; color: #ddd; text-align: center; padding: 0 10px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; font-weight: 500;
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 860px) {
+    .shell { padding: 20px 18px 160px; }
+    .hero { grid-template-columns: 1fr; align-items: start; gap: 18px; }
+    .clock-wrap { text-align: left; }
+    .cal { right: auto; left: 0; }
+    .dock {
+      top: auto; bottom: 18px; left: 50%; right: auto;
+      transform: translateX(-50%);
+      flex-direction: row;
+    }
+    /* The panel is full-width on small screens, so get the dock out of the way. */
+    .dock.shifted { right: auto; display: none; }
+    .panel { width: 100vw; }
+    .cards { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 11px; }
+    .searchbar .kbd { display: none; }
+    .engine-select { flex-shrink: 0; }
   }
-
-  .delete {
-    position: absolute; top: 8px; right: 8px; width: 24px; height: 24px;
-    background: rgba(0,0,0,0.6); color: #fff; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; font-size: 16px;
-    cursor: pointer; opacity: 0; transition: opacity 0.2s, background 0.2s;
-  }
-
-  .delete:hover { background: var(--accent); }
-  .card:hover .delete { opacity: 1; }
-
-  /* --- MODAL & FAB --- */
-  .fab-btn {
-    position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
-    background: linear-gradient(135deg, var(--accent), #b20710); color: white;
-    border-radius: 50%; border: none; font-size: 32px;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 10px 30px rgba(229, 9, 20, 0.5); cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s; z-index: 90;
-  }
-  .fab-btn:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 15px 40px rgba(229, 9, 20, 0.7); }
-
-  .modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
-    z-index: 1000; display: none; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.3s;
-  }
-  .modal-overlay.active { display: flex; opacity: 1; }
-
-  .modal-content {
-    background: #1c1c1c; width: 90%; max-width: 400px; padding: 30px;
-    border-radius: 20px; border: 1px solid #333;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
-    transform: translateY(20px); transition: transform 0.3s;
-  }
-  .modal-overlay.active .modal-content { transform: translateY(0); }
-  .modal-content h3 { margin: 0 0 20px 0; font-size: 20px; color: #fff; }
-  .form-group { margin-bottom: 15px; }
-  .form-group label { display: block; margin-bottom: 8px; font-size: 13px; color: #aaa; }
-  
-  .modal-input {
-    width: 100%; background: #2a2a2a; color: white; border: 1px solid #444;
-    padding: 12px; border-radius: 8px; box-sizing: border-box; outline: none;
-  }
-  .modal-input:focus { border-color: var(--accent); }
-
-  .modal-actions { display: flex; gap: 10px; margin-top: 25px; }
-  .btn-cancel { background: transparent; border: 1px solid #444; color: #ccc; flex: 1; padding: 12px; border-radius: 8px; cursor: pointer; }
-  .btn-add { background: var(--accent); border: none; color: white; flex: 2; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-
-  #undoToast {
-    position: fixed; bottom: 30px; left: 30px; background: #252525; padding: 14px 24px;
-    border-radius: 12px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    display: none; z-index: 100; animation: slideUp 0.3s ease;
-  }
-  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  #undoToast button { background: none; color: #5daaff; padding: 0; margin-left: 15px; border: none; font-size: 14px; cursor: pointer; }
 </style>
 </head>
 
 <body>
 
-<header>
-  <div class="header-left">
-    <h1>My Dashboard</h1>
-    
-    <div class="datetime-pill" onclick="toggleCalendar(event)" id="datePill">
-      <span>📅</span>
-      <span id="clock">Loading...</span>
-    </div>
+<div class="aurora"><span></span><span></span><span></span></div>
+<div class="grain"></div>
 
-    <div class="calendar-popup" id="calendarPopup" onclick="event.stopPropagation()">
-      <div class="cal-header">
-        <button class="cal-nav-btn" onclick="changeMonth(-1)">&lt;</button>
-        <div class="cal-month-name" id="calMonthName">Month</div>
-        <button class="cal-nav-btn" onclick="changeMonth(1)">&gt;</button>
+<div class="shell">
+
+  <!-- ============ TOP BAR ============ -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="avatar" id="avatar" title="Open settings">JS</div>
+      <div class="brand-text">
+        <b id="brandName">Home</b>
+        <span id="brandSub">your corner of the internet</span>
       </div>
-      <div class="cal-grid" id="calGrid">
-        </div>
-    </div>
-  </div>
-
-  <div class="header-actions">
-    <div class="search-box">
-      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input id="search" placeholder="Search Google..." autocomplete="off" />
     </div>
 
-    <button class="btn-header" onclick="addCategory()">
-      <span>+ Section</span>
+    <button class="icon-btn" id="btnAddSite">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Shortcut
     </button>
-    
-    <div class="profile-icon">JS</div>
+    <button class="icon-btn" id="btnAddSection">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18M3 12h18M3 17h10"/></svg>
+      Section
+    </button>
+    <button class="icon-btn" id="btnTheme" title="Toggle light / dark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+    </button>
   </div>
-</header>
 
-<div id="dashboard-container"></div>
-<button class="fab-btn" onclick="openModal()">+</button>
+  <!-- ============ HERO ============ -->
+  <div class="hero">
+    <div>
+      <h1 class="greeting" id="greeting">Hello</h1>
+      <div class="hero-meta">
+        <span class="pill" id="weatherPill" style="display:none"></span>
+        <button class="pill" id="weatherEnable">📍 Show weather</button>
+        <span class="pill" id="uptimePill">—</span>
+      </div>
+    </div>
 
-<div class="modal-overlay" id="addModal" onclick="closeModal(event)">
-  <div class="modal-content">
-    <h3>Add New Shortcut</h3>
-    <div class="form-group">
-      <label>Category</label>
-      <select id="modal-cat" class="modal-input"></select>
+    <div class="clock-wrap">
+      <div class="clock" id="clock">--:--<small id="clockSec">00</small></div>
+      <button class="pill" id="dateBtn" style="margin-top:10px">
+        <span>📅</span><span id="clockDate">—</span>
+      </button>
+      <div class="cal" id="cal">
+        <div class="cal-head">
+          <button class="mini-btn" id="calPrev">‹</button>
+          <b id="calMonth">—</b>
+          <button class="mini-btn" id="calNext">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
     </div>
-    <div class="form-group">
-      <label>Website Name</label>
-      <input id="modal-name" class="modal-input" placeholder="e.g. GitHub">
+  </div>
+
+  <!-- ============ FOCUS ============ -->
+  <div class="focus-row">
+    <span class="label">Today</span>
+    <input id="focusInput" placeholder="What's the one thing that matters today?" autocomplete="off">
+  </div>
+
+  <!-- ============ SEARCH ============ -->
+  <div class="searchbar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="search" placeholder="Search the web, or filter your shortcuts…" autocomplete="off" spellcheck="false">
+    <span class="kbd" id="searchHint">Ctrl K</span>
+    <select class="engine-select" id="engine">
+      <option value="google">Google</option>
+      <option value="ddg">DuckDuckGo</option>
+      <option value="perplexity">Perplexity</option>
+      <option value="youtube">YouTube</option>
+      <option value="github">GitHub</option>
+    </select>
+  </div>
+
+  <!-- ============ SECTIONS ============ -->
+  <div id="board"></div>
+</div>
+
+<!-- ============ DOCK ============ -->
+<div class="dock">
+  <button data-view="ai" title="Ask Claude">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 13.9 8.6 19.5 10.5 13.9 12.4 12 18 10.1 12.4 4.5 10.5 10.1 8.6z"/><path d="M18.5 16.5 19.3 18.7 21.5 19.5 19.3 20.3 18.5 22.5 17.7 20.3 15.5 19.5 17.7 18.7z"/></svg>
+    <i class="dot"></i>
+  </button>
+  <button data-view="tasks" title="Tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7 2 2 4-4"/><path d="m3 17 2 2 4-4"/><path d="M13 7h8M13 17h8"/></svg>
+    <i class="dot"></i>
+  </button>
+  <button data-view="notes" title="Notes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg>
+    <i class="dot"></i>
+  </button>
+  <button data-view="timer" title="Focus timer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
+    <i class="dot"></i>
+  </button>
+  <button data-view="settings" title="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.5 15a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10.4 4.5a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.3a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.7 1.1Z"/></svg>
+    <i class="dot"></i>
+  </button>
+</div>
+
+<!-- ============ PANEL ============ -->
+<aside class="panel" id="panel">
+  <div class="panel-head">
+    <h3 id="panelTitle">Panel</h3>
+    <button class="mini-btn" id="panelExtra" style="display:none"></button>
+    <button class="mini-btn" id="panelClose">✕</button>
+  </div>
+
+  <!-- AI view has its own flex layout, so it lives outside .panel-body -->
+  <div class="ai-wrap panel-view" id="view-ai" style="flex:1;min-height:0">
+    <div class="chat-log" id="chatLog"></div>
+    <div class="chips" id="chatChips">
+      <button class="chip" data-p="plan">Plan my day</button>
+      <button class="chip" data-p="notes">Summarize my notes</button>
+      <button class="chip" data-p="explain">Explain simply…</button>
+      <button class="chip" data-p="draft">Draft a message</button>
     </div>
-    <div class="form-group">
+    <div class="composer">
+      <textarea id="chatInput" rows="1" placeholder="Ask Claude anything…"></textarea>
+      <button class="send-btn" id="chatSend" title="Send (Enter)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 16-8-6 8 6 8z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="panel-body">
+    <!-- TASKS -->
+    <div class="panel-view" id="view-tasks">
+      <div class="task-input">
+        <input id="taskInput" placeholder="Add a task…" autocomplete="off">
+        <button class="btn primary" id="taskAdd">Add</button>
+      </div>
+      <div id="taskList"></div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="panel-view" id="view-notes">
+      <textarea id="notesArea" placeholder="Scratchpad — saved to this browser as you type."></textarea>
+      <div class="hint" style="font-size:11.5px;color:var(--faint);margin-top:8px" id="notesMeta"></div>
+    </div>
+
+    <!-- TIMER -->
+    <div class="panel-view" id="view-timer">
+      <div class="timer-face">
+        <div class="ring-wrap" style="position:relative">
+          <svg class="ring" width="190" height="190" viewBox="0 0 190 190">
+            <circle class="bg" cx="95" cy="95" r="88"/>
+            <circle class="fg" id="ringFg" cx="95" cy="95" r="88" stroke-dasharray="552.9" stroke-dashoffset="0"/>
+          </svg>
+          <div class="ring-inner">
+            <div class="timer-time" id="timerTime">25:00</div>
+            <div class="timer-mode" id="timerMode">Focus</div>
+          </div>
+        </div>
+        <div class="timer-controls">
+          <button class="btn primary" id="timerToggle">Start</button>
+          <button class="btn" id="timerReset">Reset</button>
+          <button class="btn ghost" id="timerSwitch">Break</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="field">
+        <label>Focus length (minutes)</label>
+        <input type="text" id="focusLen" inputmode="numeric" value="25">
+      </div>
+      <div class="field">
+        <label>Break length (minutes)</label>
+        <input type="text" id="breakLen" inputmode="numeric" value="5">
+      </div>
+      <div style="font-size:12.5px;color:var(--faint);line-height:1.6">
+        Sessions completed today: <b id="pomoCount" style="color:var(--text)">0</b>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel-view" id="view-settings">
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="setName" placeholder="Nitin">
+        <div class="hint">Used for the greeting and the avatar initials.</div>
+      </div>
+
+      <div class="field">
+        <label>Appearance</label>
+        <div class="seg" id="themeSeg">
+          <button data-mode="dark">Dark</button>
+          <button data-mode="light">Light</button>
+          <button data-mode="auto">Auto</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Accent</label>
+        <div class="swatches" id="swatches"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label>Claude API key</label>
+        <input type="password" id="setKey" placeholder="sk-ant-…" autocomplete="off">
+        <div class="hint">
+          Stored only in this browser's localStorage and sent straight to api.anthropic.com.
+          Never commit it to the repo.
+        </div>
+      </div>
+      <div class="field">
+        <label>Model</label>
+        <select id="setModel">
+          <option value="claude-opus-5">Claude Opus 5 — most capable</option>
+          <option value="claude-sonnet-5">Claude Sonnet 5 — balanced</option>
+          <option value="claude-haiku-4-5">Claude Haiku 4.5 — fastest</option>
+        </select>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label>Your data</label>
+        <div class="btn-row">
+          <button class="btn" id="btnExport">Export backup</button>
+          <button class="btn" id="btnImport">Import backup</button>
+          <button class="btn" id="btnRestoreDefaults">Restore starter links</button>
+        </div>
+        <div class="hint">
+          Everything lives in this browser only. Export writes a JSON file with your
+          shortcuts, notes, tasks and settings.
+        </div>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+
+      <div class="divider"></div>
+      <div style="font-size:12px;color:var(--faint);line-height:1.7">
+        <b style="color:var(--muted)">Shortcuts</b><br>
+        <span class="kbd">Ctrl</span> <span class="kbd">K</span> or <span class="kbd">/</span> — search ·
+        <span class="kbd">Ctrl</span> <span class="kbd">J</span> — Claude ·
+        <span class="kbd">↑ ↓</span> — pick a result ·
+        <span class="kbd">Esc</span> — close
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ============ MODALS ============ -->
+<div class="overlay" id="siteModal">
+  <div class="modal">
+    <h3 id="siteModalTitle">Add shortcut</h3>
+    <div class="field">
+      <label>Section</label>
+      <select id="mSection"></select>
+    </div>
+    <div class="field">
       <label>URL</label>
-      <input id="modal-url" class="modal-input" placeholder="e.g. github.com">
+      <input type="text" id="mUrl" placeholder="github.com" autocomplete="off" spellcheck="false">
     </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-add" onclick="addSite()">Add Site</button>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="mName" placeholder="GitHub" autocomplete="off">
+    </div>
+    <div class="btn-row" style="margin-top:22px">
+      <button class="btn ghost" data-close style="flex:1">Cancel</button>
+      <button class="btn primary" id="mSave" style="flex:2">Save</button>
     </div>
   </div>
 </div>
 
-<div id="undoToast">
-  <span>Site removed</span>
-  <button onclick="undoDelete()">Undo</button>
+<div class="overlay" id="sectionModal">
+  <div class="modal">
+    <h3 id="sectionModalTitle">New section</h3>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="sName" placeholder="Work" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Icon</label>
+      <div class="emoji-row" id="sEmoji"></div>
+    </div>
+    <div class="btn-row" style="margin-top:22px">
+      <button class="btn ghost" data-close style="flex:1">Cancel</button>
+      <button class="btn primary" id="sSave" style="flex:2">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toastMsg">Removed</span>
+  <button id="toastAction">Undo</button>
 </div>
 
 <script>
-/* ================= DATA & MIGRATION ================= */
+/* ============================================================================
+   1. STORAGE  — the "sites" key and its shape are unchanged from the old page.
+   ============================================================================ */
+const K = {
+  sites:   "sites",          // legacy key — same name, same shape
+  profile: "hp.profile",
+  theme:   "hp.theme",
+  notes:   "hp.notes",
+  tasks:   "hp.tasks",
+  ai:      "hp.ai",
+  icons:   "hp.sectionIcons",
+  focus:   "hp.focus",
+  engine:  "hp.engine",
+  geo:     "hp.geo",
+  pomo:    "hp.pomo"
+};
+
+function load(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return JSON.parse(raw);
+  } catch (e) {
+    // Never silently discard unreadable data — keep a copy before moving on.
+    const raw = localStorage.getItem(key);
+    if (raw) localStorage.setItem(key + ".corrupt-backup", raw);
+    return fallback;
+  }
+}
+function save(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+
+/* --- Shortcut data (identical defaults + migration to the previous version) --- */
 const DEFAULT_DATA = {
   "Movie Night": [
-    { name:"Netflix", url:"https://www.netflix.com", default: true },
-    { name:"Prime Video", url:"https://www.primevideo.com", default: true },
-    { name:"Jio Hotstar", url:"https://www.hotstar.com", default: true },
-    { name:"YouTube", url:"https://www.youtube.com", default: true }
+    { name: "Netflix",     url: "https://www.netflix.com",    default: true },
+    { name: "Prime Video", url: "https://www.primevideo.com", default: true },
+    { name: "Jio Hotstar", url: "https://www.hotstar.com",    default: true },
+    { name: "YouTube",     url: "https://www.youtube.com",    default: true }
   ],
   "Daily": [
-    { name:"Gmail", url:"https://mail.google.com", default: true },
-    { name:"YouTube", url:"https://www.youtube.com", default: true },
-    { name:"9Anime", url:"https://9anime.org.lv", default: true }
+    { name: "Gmail",   url: "https://mail.google.com",  default: true },
+    { name: "YouTube", url: "https://www.youtube.com",  default: true },
+    { name: "9Anime",  url: "https://9anime.org.lv",    default: true }
   ],
   "Study": [
-    { name:"LeetCode", url:"https://leetcode.com", default: true },
-    { name:"HackerRank", url:"https://www.hackerrank.com", default: true },
-    { name:"YouTube", url:"https://www.youtube.com", default: true }
+    { name: "LeetCode",   url: "https://leetcode.com",          default: true },
+    { name: "HackerRank", url: "https://www.hackerrank.com",    default: true },
+    { name: "YouTube",    url: "https://www.youtube.com",       default: true }
   ]
 };
 
-let sites = JSON.parse(localStorage.getItem("sites"));
+let sites = load(K.sites, null);
 
+// Migration from the original lowercase keys.
 if (sites && sites.movie) {
-    if(sites.movie) { sites["Movie Night"] = sites.movie; delete sites.movie; }
-    if(sites.daily) { sites["Daily"] = sites.daily; delete sites.daily; }
-    if(sites.study) { sites["Study"] = sites.study; delete sites.study; }
-    localStorage.setItem("sites", JSON.stringify(sites));
+  sites["Movie Night"] = sites.movie; delete sites.movie;
+  if (sites.daily) { sites["Daily"] = sites.daily; delete sites.daily; }
+  if (sites.study) { sites["Study"] = sites.study; delete sites.study; }
+  save(K.sites, sites);
 }
-if (!sites) {
+if (!sites || typeof sites !== "object" || Array.isArray(sites)) {
   sites = JSON.parse(JSON.stringify(DEFAULT_DATA));
-  localStorage.setItem("sites", JSON.stringify(sites));
+  save(K.sites, sites);
 }
 
-/* ================= CLOCK & CALENDAR LOGIC ================= */
+let profile = load(K.profile, { name: "" });
+let theme   = load(K.theme,   { mode: "dark", accent: "#ff6b4a" });
+let tasks   = load(K.tasks,   []);
+let ai      = load(K.ai,      { key: "", model: "claude-opus-5", history: [] });
+let icons   = load(K.icons,   {});
+let engine  = load(K.engine,  "google");
+let geo     = load(K.geo,     null);
+let pomo    = load(K.pomo,    { date: "", count: 0 });
 
-// Clock
-function updateClock() {
-    const now = new Date();
-    const options = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    document.getElementById('clock').innerText = now.toLocaleDateString('en-US', options);
-}
-setInterval(updateClock, 1000);
-updateClock();
+const $  = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-// Calendar State
-let calendarDate = new Date(); // The month being viewed
-let today = new Date(); // The actual today
+/* ============================================================================
+   2. THEME + PROFILE
+   ============================================================================ */
+const ACCENTS = [
+  { name: "Ember",  hex: "#ff6b4a" },
+  { name: "Rose",   hex: "#ff4d6d" },
+  { name: "Iris",   hex: "#7c8cff" },
+  { name: "Cyan",   hex: "#22d3ee" },
+  { name: "Mint",   hex: "#3ddc97" },
+  { name: "Gold",   hex: "#f0b429" }
+];
 
-function toggleCalendar(event) {
-    if(event) event.stopPropagation();
-    const popup = document.getElementById("calendarPopup");
-    const pill = document.getElementById("datePill");
-    
-    // Reset view to current month when opening
-    if (popup.style.display !== "block") {
-        calendarDate = new Date(); 
-        renderCalendar();
-    }
-
-    if (popup.classList.contains("show")) {
-        popup.classList.remove("show");
-        pill.classList.remove("active");
-        setTimeout(() => popup.style.display = "none", 200); // Wait for fade out
-    } else {
-        popup.style.display = "block";
-        // Small delay to allow CSS transition to catch the "display: block"
-        setTimeout(() => {
-             popup.classList.add("show");
-             pill.classList.add("active");
-        }, 10);
-    }
+function applyTheme() {
+  const mode = theme.mode === "auto"
+    ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+    : theme.mode;
+  document.documentElement.dataset.theme = mode;
+  document.documentElement.style.setProperty("--accent", theme.accent);
+  $$("#themeSeg button").forEach(b => b.classList.toggle("on", b.dataset.mode === theme.mode));
+  $$("#swatches .swatch").forEach(s => s.classList.toggle("on", s.dataset.hex === theme.accent));
 }
 
-function changeMonth(step) {
-    calendarDate.setMonth(calendarDate.getMonth() + step);
-    renderCalendar();
+function initials(name) {
+  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "JS";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function applyProfile() {
+  $("#avatar").textContent = initials(profile.name);
+  $("#brandName").textContent = profile.name ? profile.name.split(/\s+/)[0] + "'s Home" : "Home";
+  paintGreeting();
+}
+
+function paintGreeting() {
+  const h = new Date().getHours();
+  const word = h < 5 ? "Still up" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 22 ? "Good evening" : "Winding down";
+  const who = profile.name ? profile.name.split(/\s+/)[0] : "";
+  $("#greeting").innerHTML = who ? `${word}, <em>${escapeHtml(who)}</em>` : `${word}<em>.</em>`;
+}
+
+const SUBS = [
+  "your corner of the internet",
+  "everything, one tab away",
+  "built once, used daily",
+  "quiet start, sharp focus",
+  "you already know where you're going"
+];
+$("#brandSub").textContent = SUBS[Math.floor(Math.random() * SUBS.length)];
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ============================================================================
+   3. CLOCK + CALENDAR
+   ============================================================================ */
+let calCursor = new Date();
+
+function tickClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+  $("#clock").innerHTML = `${hh}:${mm}<small>${ss}</small>`;
+  $("#clockDate").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+
+  const end = new Date(now); end.setHours(24, 0, 0, 0);
+  const hoursLeft = Math.max(0, Math.round((end - now) / 3600000));
+  $("#uptimePill").textContent = hoursLeft > 0 ? `⏳ ${hoursLeft}h left today` : "⏳ new day";
 }
 
 function renderCalendar() {
-    const grid = document.getElementById("calGrid");
-    const monthName = document.getElementById("calMonthName");
-    
-    // Set Header (e.g., "February 2026")
-    monthName.innerText = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    
-    grid.innerHTML = "";
-    
-    // Day Names Row (Mo Tu We...)
-    const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-    days.forEach(d => {
-        const div = document.createElement("div");
-        div.className = "cal-day-name";
-        div.innerText = d;
-        grid.appendChild(div);
-    });
+  const grid = $("#calGrid");
+  const today = new Date();
+  $("#calMonth").textContent = calCursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  grid.innerHTML = "";
 
-    // Calculate dates
-    const year = calendarDate.getFullYear();
-    const month = calendarDate.getMonth();
-    
-    const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+  ["S", "M", "T", "W", "T", "F", "S"].forEach(d => {
+    const el = document.createElement("div");
+    el.className = "cal-dn"; el.textContent = d;
+    grid.appendChild(el);
+  });
 
-    // Empty slots for days before 1st of month
-    for(let i=0; i<firstDay; i++) {
-        const empty = document.createElement("div");
-        empty.className = "cal-day empty";
-        grid.appendChild(empty);
-    }
+  const y = calCursor.getFullYear(), m = calCursor.getMonth();
+  const first = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
 
-    // Days of the month
-    for(let i=1; i<=daysInMonth; i++) {
-        const dayDiv = document.createElement("div");
-        dayDiv.className = "cal-day";
-        dayDiv.innerText = i;
-        
-        // Highlight Today
-        if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            dayDiv.classList.add("today");
-        }
-        
-        grid.appendChild(dayDiv);
-    }
+  for (let i = 0; i < first; i++) {
+    const el = document.createElement("div");
+    el.className = "cal-d empty";
+    grid.appendChild(el);
+  }
+  for (let d = 1; d <= days; d++) {
+    const el = document.createElement("div");
+    el.className = "cal-d";
+    el.textContent = d;
+    if (d === today.getDate() && m === today.getMonth() && y === today.getFullYear()) el.classList.add("today");
+    grid.appendChild(el);
+  }
 }
 
-// Close calendar when clicking outside
-window.addEventListener("click", (e) => {
-    const popup = document.getElementById("calendarPopup");
-    const pill = document.getElementById("datePill");
-    if (popup.classList.contains("show") && !popup.contains(e.target) && !pill.contains(e.target)) {
-        toggleCalendar();
-    }
+$("#dateBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const cal = $("#cal");
+  const opening = !cal.classList.contains("show");
+  if (opening) { calCursor = new Date(); renderCalendar(); }
+  cal.classList.toggle("show", opening);
+  $("#dateBtn").classList.toggle("active", opening);
+});
+$("#cal").addEventListener("click", e => e.stopPropagation());
+$("#calPrev").addEventListener("click", () => { calCursor.setMonth(calCursor.getMonth() - 1); renderCalendar(); });
+$("#calNext").addEventListener("click", () => { calCursor.setMonth(calCursor.getMonth() + 1); renderCalendar(); });
+document.addEventListener("click", () => {
+  $("#cal").classList.remove("show");
+  $("#dateBtn").classList.remove("active");
 });
 
-/* ================= HELPERS & RENDER ================= */
-function getIcon(url) {
+/* ============================================================================
+   4. FOCUS LINE  (resets itself each day)
+   ============================================================================ */
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+(function initFocus() {
+  const stored = load(K.focus, { date: "", text: "" });
+  $("#focusInput").value = stored.date === todayKey() ? stored.text : "";
+})();
+
+$("#focusInput").addEventListener("input", () => {
+  save(K.focus, { date: todayKey(), text: $("#focusInput").value });
+});
+
+/* ============================================================================
+   5. SHORTCUT BOARD
+   ============================================================================ */
+const EMOJIS = ["📂","🍿","🎓","📅","💼","🎮","💬","🛒","🎧","📰","🧠","🏋️","✈️","💰","🔧","🎨","📈","🌙"];
+
+function iconFor(section) {
+  if (icons[section]) return icons[section];
+  const s = section.toLowerCase();
+  if (s.includes("movie") || s.includes("watch")) return "🍿";
+  if (s.includes("study") || s.includes("learn")) return "🎓";
+  if (s.includes("daily") || s.includes("everyday")) return "📅";
+  if (s.includes("work") || s.includes("job")) return "💼";
+  if (s.includes("game")) return "🎮";
+  if (s.includes("social") || s.includes("chat")) return "💬";
+  if (s.includes("shop") || s.includes("buy")) return "🛒";
+  if (s.includes("music") || s.includes("listen")) return "🎧";
+  if (s.includes("news") || s.includes("read")) return "📰";
+  if (s.includes("dev") || s.includes("code") || s.includes("tool")) return "🔧";
+  if (s.includes("money") || s.includes("finance") || s.includes("bank")) return "💰";
+  return "📂";
+}
+
+function faviconFor(url) {
   try {
     const host = new URL(url).hostname;
     if (host.includes("mail.google.com")) return "https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico";
     return `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
   } catch (e) {
-    return "https://www.google.com/s2/favicons?domain=google.com&sz=128";
+    return "";
   }
 }
 
-function render() {
-  const container = document.getElementById("dashboard-container");
-  container.innerHTML = ""; 
+let dragSrc = null;
 
-  Object.keys(sites).forEach(categoryName => {
-    const sectionDiv = document.createElement("div");
-    sectionDiv.className = "section-container";
+function renderBoard() {
+  const board = $("#board");
+  board.innerHTML = "";
 
-    const title = document.createElement("h2");
-    let icon = "📂";
-    if(categoryName.toLowerCase().includes("movie")) icon = "🍿";
-    else if(categoryName.toLowerCase().includes("study")) icon = "🎓";
-    else if(categoryName.toLowerCase().includes("daily")) icon = "📅";
-    else if(categoryName.toLowerCase().includes("work")) icon = "💼";
-    else if(categoryName.toLowerCase().includes("game")) icon = "🎮";
-    else if(categoryName.toLowerCase().includes("social")) icon = "💬";
+  const names = Object.keys(sites);
+  if (!names.length) {
+    board.innerHTML = `<div class="empty-note">No sections yet — hit <b>Section</b> up top to make one.</div>`;
+    return;
+  }
 
-    title.innerHTML = `${icon} ${categoryName}`;
+  names.forEach(section => {
+    const wrap = document.createElement("div");
+    wrap.className = "section";
+    wrap.dataset.section = section;
 
-    const delSection = document.createElement("span");
-    delSection.className = "delete-section-btn";
-    delSection.innerHTML = "&times;"; 
-    delSection.title = "Delete this section";
-    delSection.onclick = () => deleteCategory(categoryName);
-    
-    if (sites[categoryName].length === 0) {
-        title.appendChild(delSection);
-    }
+    // --- header ---
+    const head = document.createElement("div");
+    head.className = "section-head";
+    head.innerHTML = `
+      <h2><span class="emoji">${iconFor(section)}</span>${escapeHtml(section)}</h2>
+      <span class="count">${sites[section].length}</span>
+      <div class="section-tools">
+        <button class="mini-btn" data-act="rename" title="Rename section">✎</button>
+        <button class="mini-btn danger" data-act="remove" title="Delete section">✕</button>
+      </div>`;
+    head.querySelector('[data-act="rename"]').addEventListener("click", () => openSectionModal(section));
+    head.querySelector('[data-act="remove"]').addEventListener("click", () => deleteSection(section));
+    wrap.appendChild(head);
 
-    sectionDiv.appendChild(title);
-
+    // --- cards ---
     const grid = document.createElement("div");
-    grid.className = "section";
-    const cardsDiv = document.createElement("div");
-    cardsDiv.className = "cards";
+    grid.className = "cards";
 
-    sites[categoryName].forEach((site, index) => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.title = site.url;
-
-      if (!site.default) {
-        const del = document.createElement("div");
-        del.className = "delete";
-        del.innerHTML = "&times;";
-        del.onclick = (e) => {
-          e.stopPropagation();
-          deleteSite(categoryName, index);
-        };
-        card.appendChild(del);
-      }
-      
-      card.onclick = () => window.open(site.url, "_blank");
-
-      const img = document.createElement("img");
-      img.src = getIcon(site.url);
-      img.onerror = () => { img.src = "https://www.google.com/s2/favicons?domain=google.com"; };
-
-      const name = document.createElement("span");
-      name.innerText = site.name;
-
-      card.appendChild(img);
-      card.appendChild(name);
-      cardsDiv.appendChild(card);
+    sites[section].forEach((site, index) => {
+      grid.appendChild(buildCard(section, site, index));
     });
 
-    grid.appendChild(cardsDiv);
-    sectionDiv.appendChild(grid);
-    container.appendChild(sectionDiv);
+    const add = document.createElement("div");
+    add.className = "card add-card";
+    add.innerHTML = `<div class="plus">+</div><div class="name">Add</div>`;
+    add.addEventListener("click", () => openSiteModal({ section }));
+    grid.appendChild(add);
+
+    // dropping into blank space appends to the end of this section
+    grid.addEventListener("dragover", e => e.preventDefault());
+    grid.addEventListener("drop", e => {
+      if (e.target.closest(".card")) return;
+      e.preventDefault();
+      moveSite(dragSrc, { section, index: sites[section].length });
+    });
+
+    wrap.appendChild(grid);
+    board.appendChild(wrap);
   });
-  localStorage.setItem("sites", JSON.stringify(sites));
+
+  applyFilter($("#search").value);
 }
 
-/* ================= ACTIONS ================= */
-function addCategory() {
-    const name = prompt("Enter name for new section (e.g., 'Work', 'Gaming'):");
-    if (name) {
-        if (sites[name]) {
-            alert("Category already exists!");
-            return;
-        }
-        sites[name] = []; 
-        render();
-    }
-}
-function deleteCategory(catName) {
-    if(confirm(`Remove the "${catName}" section?`)) {
-        delete sites[catName];
-        render();
-    }
-}
-function openModal() {
-  const modal = document.getElementById("addModal");
-  const select = document.getElementById("modal-cat");
-  select.innerHTML = "";
-  Object.keys(sites).forEach(key => {
-      const opt = document.createElement("option");
-      opt.value = key;
-      opt.innerText = key;
-      select.appendChild(opt);
+function buildCard(section, site, index) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.title = site.url;
+  card.draggable = true;
+  card.dataset.section = section;
+  card.dataset.index = index;
+  card.dataset.search = (site.name + " " + site.url).toLowerCase();
+
+  const img = document.createElement("img");
+  img.className = "ico";
+  img.alt = "";
+  img.loading = "lazy";
+  img.src = faviconFor(site.url);
+  img.addEventListener("error", () => {
+    const letter = document.createElement("div");
+    letter.className = "letter";
+    letter.textContent = (site.name || "?").trim()[0].toUpperCase();
+    img.replaceWith(letter);
   });
-  modal.classList.add("active");
-  document.getElementById("modal-name").focus();
+
+  const name = document.createElement("div");
+  name.className = "name";
+  name.textContent = site.name;
+
+  const tools = document.createElement("div");
+  tools.className = "card-tools";
+  tools.innerHTML = `<button data-act="edit" title="Edit">✎</button><button class="del" data-act="del" title="Remove">✕</button>`;
+  tools.querySelector('[data-act="edit"]').addEventListener("click", e => {
+    e.stopPropagation();
+    openSiteModal({ section, index });
+  });
+  tools.querySelector('[data-act="del"]').addEventListener("click", e => {
+    e.stopPropagation();
+    deleteSite(section, index);
+  });
+
+  card.append(tools, img, name);
+  card.addEventListener("click", () => window.open(site.url, "_blank", "noopener"));
+
+  card.addEventListener("dragstart", e => {
+    dragSrc = { section, index };
+    card.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", site.url);
+  });
+  card.addEventListener("dragend", () => card.classList.remove("dragging"));
+  card.addEventListener("dragover", e => {
+    e.preventDefault();
+    card.classList.add("drop-target");
+  });
+  card.addEventListener("dragleave", () => card.classList.remove("drop-target"));
+  card.addEventListener("drop", e => {
+    e.preventDefault();
+    e.stopPropagation();
+    card.classList.remove("drop-target");
+    moveSite(dragSrc, { section, index });
+  });
+
+  return card;
 }
-function closeModal(e) {
-  if (!e || e.target === document.getElementById("addModal") || e.target.classList.contains("btn-cancel")) {
-    document.getElementById("addModal").classList.remove("active");
+
+function moveSite(from, to) {
+  if (!from || !to) return;
+  if (!sites[from.section] || !sites[to.section]) return;
+  if (from.section === to.section && from.index === to.index) return;
+
+  const [item] = sites[from.section].splice(from.index, 1);
+  let target = to.index;
+  if (from.section === to.section && from.index < to.index) target -= 1;
+  sites[to.section].splice(Math.max(0, target), 0, item);
+
+  dragSrc = null;
+  persistSites();
+  renderBoard();
+}
+
+function persistSites() { save(K.sites, sites); }
+
+/* --- undo --- */
+let undoState = null, undoTimer = null;
+
+function showToast(message, onUndo) {
+  const toast = $("#toast");
+  $("#toastMsg").textContent = message;
+  $("#toastAction").style.display = onUndo ? "" : "none";
+  undoState = onUndo || null;
+  toast.classList.add("show");
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { toast.classList.remove("show"); undoState = null; }, 6000);
+}
+$("#toastAction").addEventListener("click", () => {
+  if (undoState) undoState();
+  $("#toast").classList.remove("show");
+  undoState = null;
+});
+
+function deleteSite(section, index) {
+  const removed = sites[section][index];
+  sites[section].splice(index, 1);
+  persistSites();
+  renderBoard();
+  showToast(`Removed ${removed.name}`, () => {
+    if (!sites[section]) sites[section] = [];
+    sites[section].splice(index, 0, removed);
+    persistSites();
+    renderBoard();
+  });
+}
+
+function deleteSection(section) {
+  const count = sites[section].length;
+  if (count && !confirm(`Delete "${section}" and its ${count} shortcut${count > 1 ? "s" : ""}?`)) return;
+
+  // Preserve position so undo puts it back where it was.
+  const order = Object.keys(sites);
+  const at = order.indexOf(section);
+  const removed = sites[section];
+  const removedIcon = icons[section];
+
+  delete sites[section];
+  delete icons[section];
+  persistSites();
+  save(K.icons, icons);
+  renderBoard();
+
+  showToast(`Removed section "${section}"`, () => {
+    const rebuilt = {};
+    Object.keys(sites).forEach((k, i) => {
+      if (i === at) rebuilt[section] = removed;
+      rebuilt[k] = sites[k];
+    });
+    if (!(section in rebuilt)) rebuilt[section] = removed;
+    sites = rebuilt;
+    if (removedIcon) icons[section] = removedIcon;
+    persistSites();
+    save(K.icons, icons);
+    renderBoard();
+  });
+}
+
+/* ============================================================================
+   6. SEARCH + FILTER
+   ============================================================================ */
+const ENGINES = {
+  google:     q => "https://www.google.com/search?q=" + encodeURIComponent(q),
+  ddg:        q => "https://duckduckgo.com/?q=" + encodeURIComponent(q),
+  perplexity: q => "https://www.perplexity.ai/search?q=" + encodeURIComponent(q),
+  youtube:    q => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q),
+  github:     q => "https://github.com/search?q=" + encodeURIComponent(q)
+};
+
+const searchInput = $("#search");
+$("#engine").value = engine;
+$("#engine").addEventListener("change", e => { engine = e.target.value; save(K.engine, engine); searchInput.focus(); });
+
+let focusIdx = -1;
+
+function applyFilter(query) {
+  const q = query.trim().toLowerCase();
+  focusIdx = -1;
+
+  $$(".section").forEach(sec => {
+    let visible = 0;
+    sec.querySelectorAll(".card:not(.add-card)").forEach(card => {
+      const hit = !q || card.dataset.search.includes(q);
+      card.style.display = hit ? "" : "none";
+      card.classList.remove("focused");
+      if (hit) visible++;
+    });
+    const addCard = sec.querySelector(".add-card");
+    if (addCard) addCard.style.display = q ? "none" : "";
+    sec.style.display = q && visible === 0 ? "none" : "";
+  });
+
+  $("#searchHint").textContent = q ? "Enter to search" : "Ctrl K";
+}
+
+function visibleCards() {
+  return $$(".card:not(.add-card)").filter(c => c.style.display !== "none" && c.closest(".section").style.display !== "none");
+}
+
+function moveFocus(delta) {
+  const cards = visibleCards();
+  if (!cards.length) return;
+  if (focusIdx >= 0 && cards[focusIdx]) cards[focusIdx].classList.remove("focused");
+  focusIdx = (focusIdx + delta + cards.length) % cards.length;
+  cards[focusIdx].classList.add("focused");
+  cards[focusIdx].scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+searchInput.addEventListener("input", () => applyFilter(searchInput.value));
+
+searchInput.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { e.preventDefault(); moveFocus(1); return; }
+  if (e.key === "ArrowUp")   { e.preventDefault(); moveFocus(-1); return; }
+  if (e.key === "Escape")    { searchInput.value = ""; applyFilter(""); searchInput.blur(); return; }
+  if (e.key !== "Enter") return;
+
+  const cards = visibleCards();
+  if (focusIdx >= 0 && cards[focusIdx]) { cards[focusIdx].click(); return; }
+
+  const q = searchInput.value.trim();
+  if (!q) return;
+  const looksLikeUrl = /^https?:\/\//i.test(q) || (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(q) && !q.includes(" "));
+  const url = looksLikeUrl ? (/^https?:\/\//i.test(q) ? q : "https://" + q) : ENGINES[engine](q);
+  window.open(url, "_blank", "noopener");
+  searchInput.value = "";
+  applyFilter("");
+});
+
+/* ============================================================================
+   7. MODALS
+   ============================================================================ */
+let siteEditTarget = null;   // { section, index } when editing
+
+function openSiteModal(opts = {}) {
+  const sel = $("#mSection");
+  sel.innerHTML = "";
+  Object.keys(sites).forEach(name => {
+    const o = document.createElement("option");
+    o.value = name; o.textContent = name;
+    sel.appendChild(o);
+  });
+
+  if (opts.index !== undefined) {
+    siteEditTarget = { section: opts.section, index: opts.index };
+    const site = sites[opts.section][opts.index];
+    $("#siteModalTitle").textContent = "Edit shortcut";
+    sel.value = opts.section;
+    $("#mUrl").value = site.url;
+    $("#mName").value = site.name;
+  } else {
+    siteEditTarget = null;
+    $("#siteModalTitle").textContent = "Add shortcut";
+    if (opts.section) sel.value = opts.section;
+    $("#mUrl").value = "";
+    $("#mName").value = "";
+  }
+
+  openOverlay("#siteModal");
+  setTimeout(() => $("#mUrl").focus(), 120);
+}
+
+// Auto-suggest a name from the hostname the first time it's blank.
+$("#mUrl").addEventListener("blur", () => {
+  if ($("#mName").value.trim()) return;
+  const raw = $("#mUrl").value.trim();
+  if (!raw) return;
+  try {
+    const host = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw).hostname.replace(/^www\./, "");
+    const base = host.split(".")[0];
+    $("#mName").value = base.charAt(0).toUpperCase() + base.slice(1);
+  } catch (e) { /* leave it to the user */ }
+});
+
+$("#mSave").addEventListener("click", () => {
+  const section = $("#mSection").value;
+  const name = $("#mName").value.trim();
+  let url = $("#mUrl").value.trim();
+  if (!name || !url) { showToast("Both a URL and a name are needed"); return; }
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+
+  if (siteEditTarget) {
+    const site = sites[siteEditTarget.section][siteEditTarget.index];
+    site.name = name;
+    site.url = url;
+    if (section !== siteEditTarget.section) {
+      sites[siteEditTarget.section].splice(siteEditTarget.index, 1);
+      sites[section].push(site);
+    }
+  } else {
+    sites[section].push({ name, url, default: false });
+  }
+
+  persistSites();
+  renderBoard();
+  closeOverlay("#siteModal");
+});
+
+let sectionEditTarget = null;
+let sectionEmoji = "📂";
+
+function openSectionModal(existing) {
+  sectionEditTarget = existing || null;
+  $("#sectionModalTitle").textContent = existing ? "Rename section" : "New section";
+  $("#sName").value = existing || "";
+  sectionEmoji = existing ? iconFor(existing) : "📂";
+
+  const row = $("#sEmoji");
+  row.innerHTML = "";
+  EMOJIS.forEach(em => {
+    const b = document.createElement("button");
+    b.textContent = em;
+    b.classList.toggle("on", em === sectionEmoji);
+    b.addEventListener("click", () => {
+      sectionEmoji = em;
+      row.querySelectorAll("button").forEach(x => x.classList.toggle("on", x.textContent === em));
+    });
+    row.appendChild(b);
+  });
+
+  openOverlay("#sectionModal");
+  setTimeout(() => $("#sName").focus(), 120);
+}
+
+$("#sSave").addEventListener("click", () => {
+  const name = $("#sName").value.trim();
+  if (!name) { showToast("Give the section a name"); return; }
+
+  if (sectionEditTarget) {
+    if (name !== sectionEditTarget) {
+      if (sites[name]) { showToast("A section with that name already exists"); return; }
+      // Rebuild in place so the order is preserved.
+      const rebuilt = {};
+      Object.keys(sites).forEach(k => {
+        if (k === sectionEditTarget) rebuilt[name] = sites[k];
+        else rebuilt[k] = sites[k];
+      });
+      sites = rebuilt;
+      delete icons[sectionEditTarget];
+    }
+    icons[name] = sectionEmoji;
+  } else {
+    if (sites[name]) { showToast("A section with that name already exists"); return; }
+    sites[name] = [];
+    icons[name] = sectionEmoji;
+  }
+
+  persistSites();
+  save(K.icons, icons);
+  renderBoard();
+  closeOverlay("#sectionModal");
+});
+
+function openOverlay(sel)  { $(sel).classList.add("open"); }
+function closeOverlay(sel) { $(sel).classList.remove("open"); }
+
+$$(".overlay").forEach(ov => {
+  ov.addEventListener("click", e => { if (e.target === ov) ov.classList.remove("open"); });
+  ov.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => ov.classList.remove("open")));
+  ov.querySelectorAll("input").forEach(inp => inp.addEventListener("keydown", e => {
+    if (e.key === "Enter") ov.querySelector(".btn.primary").click();
+  }));
+});
+
+$("#btnAddSite").addEventListener("click", () => openSiteModal());
+$("#btnAddSection").addEventListener("click", () => openSectionModal());
+
+/* ============================================================================
+   8. PANEL (dock views)
+   ============================================================================ */
+const PANEL_TITLES = { ai: "Ask Claude", tasks: "Tasks", notes: "Notes", timer: "Focus timer", settings: "Settings" };
+let activeView = null;
+
+function openView(view) {
+  if (activeView === view) { closePanel(); return; }
+  activeView = view;
+  $("#panelTitle").textContent = PANEL_TITLES[view];
+  $$(".panel-view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
+  $(".panel-body").style.display = view === "ai" ? "none" : "";
+  $("#view-ai").style.display = view === "ai" ? "flex" : "none";
+  $("#panel").classList.add("open");
+  document.querySelector(".dock").classList.add("shifted");
+  $$(".dock button").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+
+  const extra = $("#panelExtra");
+  if (view === "ai") {
+    extra.style.display = ""; extra.textContent = "🗑"; extra.title = "Clear conversation";
+    extra.onclick = clearChat;
+  } else if (view === "tasks") {
+    extra.style.display = ""; extra.textContent = "🧹"; extra.title = "Clear completed";
+    extra.onclick = () => { tasks = tasks.filter(t => !t.done); save(K.tasks, tasks); renderTasks(); };
+  } else {
+    extra.style.display = "none"; extra.onclick = null;
+  }
+
+  if (view === "ai") setTimeout(() => $("#chatInput").focus(), 300);
+  if (view === "tasks") setTimeout(() => $("#taskInput").focus(), 300);
+}
+
+function closePanel() {
+  activeView = null;
+  $("#panel").classList.remove("open");
+  document.querySelector(".dock").classList.remove("shifted");
+  $$(".dock button").forEach(b => b.classList.remove("active"));
+}
+
+$$(".dock button").forEach(b => b.addEventListener("click", () => openView(b.dataset.view)));
+$("#panelClose").addEventListener("click", closePanel);
+$("#avatar").addEventListener("click", () => openView("settings"));
+$("#btnTheme").addEventListener("click", () => {
+  theme.mode = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  save(K.theme, theme);
+  applyTheme();
+});
+
+/* ============================================================================
+   9. TASKS
+   ============================================================================ */
+function renderTasks() {
+  const list = $("#taskList");
+  list.innerHTML = "";
+  if (!tasks.length) {
+    list.innerHTML = `<div class="empty-note">Nothing on the list. Enjoy it.</div>`;
+  }
+  tasks.forEach((t, i) => {
+    const el = document.createElement("div");
+    el.className = "task" + (t.done ? " done" : "");
+    el.innerHTML = `<div class="box">${t.done ? "✓" : ""}</div><div class="txt"></div><button class="mini-btn rm danger">✕</button>`;
+    el.querySelector(".txt").textContent = t.text;
+    el.querySelector(".box").addEventListener("click", () => {
+      tasks[i].done = !tasks[i].done;
+      save(K.tasks, tasks); renderTasks();
+    });
+    el.querySelector(".rm").addEventListener("click", () => {
+      const removed = tasks.splice(i, 1)[0];
+      save(K.tasks, tasks); renderTasks();
+      showToast("Task removed", () => { tasks.splice(i, 0, removed); save(K.tasks, tasks); renderTasks(); });
+    });
+    list.appendChild(el);
+  });
+
+  const open = tasks.filter(t => !t.done).length;
+  document.querySelector('.dock button[data-view="tasks"]').classList.toggle("has-dot", open > 0);
+}
+
+function addTask() {
+  const text = $("#taskInput").value.trim();
+  if (!text) return;
+  tasks.push({ text, done: false });
+  $("#taskInput").value = "";
+  save(K.tasks, tasks);
+  renderTasks();
+}
+$("#taskAdd").addEventListener("click", addTask);
+$("#taskInput").addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
+
+/* ============================================================================
+   10. NOTES
+   ============================================================================ */
+const notesArea = $("#notesArea");
+notesArea.value = load(K.notes, "");
+function noteMeta() {
+  const words = notesArea.value.trim() ? notesArea.value.trim().split(/\s+/).length : 0;
+  $("#notesMeta").textContent = `${words} word${words === 1 ? "" : "s"} · saved locally`;
+}
+noteMeta();
+let notesTimer = null;
+notesArea.addEventListener("input", () => {
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(() => { save(K.notes, notesArea.value); noteMeta(); }, 250);
+});
+
+/* ============================================================================
+   11. FOCUS TIMER
+   ============================================================================ */
+let timer = { mode: "focus", remaining: 25 * 60, running: false, handle: null };
+const RING_LEN = 2 * Math.PI * 88;
+
+function timerTotal() {
+  const focusLen = parseInt($("#focusLen").value, 10) || 25;
+  const breakLen = parseInt($("#breakLen").value, 10) || 5;
+  return (timer.mode === "focus" ? focusLen : breakLen) * 60;
+}
+
+function paintTimer() {
+  const m = Math.floor(timer.remaining / 60), s = timer.remaining % 60;
+  $("#timerTime").textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  $("#timerMode").textContent = timer.mode === "focus" ? "Focus" : "Break";
+  $("#timerToggle").textContent = timer.running ? "Pause" : "Start";
+  $("#timerSwitch").textContent = timer.mode === "focus" ? "Break" : "Focus";
+  const pct = timerTotal() ? timer.remaining / timerTotal() : 0;
+  $("#ringFg").style.strokeDasharray = RING_LEN;
+  $("#ringFg").style.strokeDashoffset = RING_LEN * (1 - pct);
+  if (timer.running) document.title = `${$("#timerTime").textContent} · ${timer.mode === "focus" ? "Focus" : "Break"}`;
+  else document.title = "Home";
+  document.querySelector('.dock button[data-view="timer"]').classList.toggle("has-dot", timer.running);
+}
+
+function tickTimer() {
+  timer.remaining--;
+  if (timer.remaining <= 0) {
+    stopTimer();
+    if (timer.mode === "focus") {
+      if (pomo.date !== todayKey()) pomo = { date: todayKey(), count: 0 };
+      pomo.count++;
+      save(K.pomo, pomo);
+      $("#pomoCount").textContent = pomo.count;
+    }
+    timer.mode = timer.mode === "focus" ? "break" : "focus";
+    timer.remaining = timerTotal();
+    showToast(timer.mode === "break" ? "Focus block done — take a break ☕" : "Break over — back to it 🎯");
+  }
+  paintTimer();
+}
+
+function startTimer() {
+  if (timer.running) return;
+  timer.running = true;
+  timer.handle = setInterval(tickTimer, 1000);
+  paintTimer();
+}
+function stopTimer() {
+  timer.running = false;
+  clearInterval(timer.handle);
+  paintTimer();
+}
+
+$("#timerToggle").addEventListener("click", () => timer.running ? stopTimer() : startTimer());
+$("#timerReset").addEventListener("click", () => { stopTimer(); timer.remaining = timerTotal(); paintTimer(); });
+$("#timerSwitch").addEventListener("click", () => {
+  stopTimer();
+  timer.mode = timer.mode === "focus" ? "break" : "focus";
+  timer.remaining = timerTotal();
+  paintTimer();
+});
+["#focusLen", "#breakLen"].forEach(sel => $(sel).addEventListener("change", () => {
+  if (!timer.running) { timer.remaining = timerTotal(); paintTimer(); }
+}));
+
+/* ============================================================================
+   12. WEATHER  (Open-Meteo — no key, only runs if you allow location)
+   ============================================================================ */
+const WEATHER = {
+  0: ["☀️", "Clear"], 1: ["🌤", "Mostly clear"], 2: ["⛅", "Partly cloudy"], 3: ["☁️", "Overcast"],
+  45: ["🌫", "Fog"], 48: ["🌫", "Rime fog"], 51: ["🌦", "Light drizzle"], 53: ["🌦", "Drizzle"],
+  55: ["🌦", "Heavy drizzle"], 61: ["🌧", "Light rain"], 63: ["🌧", "Rain"], 65: ["🌧", "Heavy rain"],
+  71: ["🌨", "Light snow"], 73: ["🌨", "Snow"], 75: ["❄️", "Heavy snow"], 80: ["🌦", "Showers"],
+  81: ["🌧", "Showers"], 82: ["⛈", "Violent showers"], 95: ["⛈", "Thunderstorm"],
+  96: ["⛈", "Thunderstorm"], 99: ["⛈", "Severe storm"]
+};
+
+async function loadWeather(lat, lon) {
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`);
+    if (!res.ok) throw new Error("weather request failed");
+    const data = await res.json();
+    const code = data.current.weather_code;
+    const [icon, label] = WEATHER[code] || ["🌡", "Now"];
+    $("#weatherPill").textContent = `${icon} ${Math.round(data.current.temperature_2m)}°C · ${label}`;
+    $("#weatherPill").style.display = "";
+    $("#weatherEnable").style.display = "none";
+  } catch (e) {
+    $("#weatherEnable").textContent = "📍 Weather unavailable";
   }
 }
-function addSite() {
-  const cat = document.getElementById("modal-cat").value;
-  const nameInput = document.getElementById("modal-name");
-  const urlInput = document.getElementById("modal-url");
-  const name = nameInput.value.trim();
-  let url = urlInput.value.trim();
-  if (!name || !url) return alert("Enter name & URL");
-  if (!url.startsWith("http")) url = "https://" + url;
-  sites[cat].push({ name, url, default: false });
-  nameInput.value = "";
-  urlInput.value = "";
-  document.getElementById("addModal").classList.remove("active");
-  render();
+
+$("#weatherEnable").addEventListener("click", () => {
+  if (!navigator.geolocation) { $("#weatherEnable").textContent = "📍 Not supported"; return; }
+  $("#weatherEnable").textContent = "📍 Locating…";
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      geo = { lat: pos.coords.latitude.toFixed(3), lon: pos.coords.longitude.toFixed(3) };
+      save(K.geo, geo);
+      loadWeather(geo.lat, geo.lon);
+    },
+    () => { $("#weatherEnable").textContent = "📍 Location denied"; },
+    { timeout: 8000 }
+  );
+});
+
+if (geo) loadWeather(geo.lat, geo.lon);
+
+/* ============================================================================
+   13. CLAUDE PANEL
+   ============================================================================ */
+const chatLog = $("#chatLog");
+const chatInput = $("#chatInput");
+let streaming = false;
+let abortCtl = null;
+
+function renderChat() {
+  chatLog.innerHTML = "";
+
+  if (!ai.key) {
+    const card = document.createElement("div");
+    card.className = "setup-card";
+    card.innerHTML = `
+      <h4>Connect Claude</h4>
+      This panel talks to the Anthropic API straight from your browser — nothing runs on a server.
+      <ol>
+        <li>Grab a key from <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a></li>
+        <li>Paste it into Settings → Claude API key</li>
+      </ol>
+      The key is kept in this browser's localStorage only. Since this page is public on GitHub Pages,
+      never hard-code the key into the file itself.`;
+    const btn = document.createElement("button");
+    btn.className = "btn primary";
+    btn.style.marginTop = "14px";
+    btn.textContent = "Open settings";
+    btn.addEventListener("click", () => { openView("settings"); setTimeout(() => $("#setKey").focus(), 320); });
+    card.appendChild(btn);
+    chatLog.appendChild(card);
+    return;
+  }
+
+  if (!ai.history.length) {
+    const hint = document.createElement("div");
+    hint.className = "setup-card";
+    hint.innerHTML = `<h4>Ready when you are</h4>Ask anything, or tap one of the shortcuts below. The conversation is kept in this browser until you clear it.`;
+    chatLog.appendChild(hint);
+  }
+
+  ai.history.forEach(m => chatLog.appendChild(bubble(m.role === "user" ? "user" : "bot", m.content)));
+  chatLog.scrollTop = chatLog.scrollHeight;
 }
-function deleteSite(cat, index) {
-  if(sites[cat][index].default) return; 
-  lastDeleted = { cat, site: sites[cat][index], index };
-  sites[cat].splice(index, 1);
-  render();
-  showUndo();
+
+function bubble(kind, text) {
+  const el = document.createElement("div");
+  el.className = "msg " + kind;
+  if (kind === "bot") el.innerHTML = renderMarkdown(text);
+  else el.textContent = text;
+  return el;
 }
-function showUndo() {
-  const toast = document.getElementById("undoToast");
-  toast.style.display = "block";
-  clearTimeout(undoTimer);
-  undoTimer = setTimeout(() => {
-    toast.style.display = "none";
-    lastDeleted = null;
-  }, 4000);
+
+// Deliberately small: bold, inline code, and fenced blocks. Everything is escaped first.
+function renderMarkdown(text) {
+  let out = escapeHtml(text);
+  out = out.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => `<pre><code>${code}</code></pre>`);
+  out = out.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  out = out.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+  return out;
 }
-function undoDelete() {
-  if (!lastDeleted) return;
-  if (!sites[lastDeleted.cat]) sites[lastDeleted.cat] = [];
-  sites[lastDeleted.cat].splice(lastDeleted.index, 0, lastDeleted.site);
-  lastDeleted = null;
-  document.getElementById("undoToast").style.display = "none";
-  render();
+
+function clearChat() {
+  ai.history = [];
+  save(K.ai, ai);
+  renderChat();
 }
-const searchInput = document.getElementById("search");
-searchInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    let q = searchInput.value.trim();
-    if (!q) return;
-    let url = (q.includes(".") && !q.includes(" ")) ? (q.startsWith("http") ? q : "https://" + q) : "https://www.google.com/search?q=" + encodeURIComponent(q);
-    window.open(url, "_blank");
-    searchInput.value = "";
+
+function autoGrow() {
+  chatInput.style.height = "auto";
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 140) + "px";
+}
+chatInput.addEventListener("input", autoGrow);
+chatInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+$("#chatSend").addEventListener("click", () => streaming ? abortCtl?.abort() : sendChat());
+
+$$("#chatChips .chip").forEach(chip => chip.addEventListener("click", () => {
+  const kind = chip.dataset.p;
+  if (kind === "plan") {
+    const open = tasks.filter(t => !t.done).map(t => "- " + t.text).join("\n");
+    const focus = $("#focusInput").value.trim();
+    chatInput.value = "Help me plan today.\n" +
+      (focus ? `My main focus: ${focus}\n` : "") +
+      (open ? `My open tasks:\n${open}` : "I have no tasks written down yet — ask me what's on my plate.");
+  } else if (kind === "notes") {
+    const n = notesArea.value.trim();
+    chatInput.value = n ? `Summarize these notes and pull out any action items:\n\n${n}` : "My notes are empty — remind me what's worth capturing here.";
+  } else if (kind === "explain") {
+    chatInput.value = "Explain this simply: ";
+  } else {
+    chatInput.value = "Draft a short, friendly message about: ";
+  }
+  autoGrow();
+  chatInput.focus();
+  chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+}));
+
+function systemPrompt() {
+  const who = profile.name ? profile.name.split(/\s+/)[0] : "the user";
+  return `You are the assistant built into ${who}'s personal browser homepage. ` +
+    `Answer directly and keep it tight — this is a small side panel, not a document. ` +
+    `Lead with the answer, then add detail only if it changes what they'd do next. ` +
+    `Use short paragraphs; use a list only when the content is genuinely a list. ` +
+    `Today is ${new Date().toDateString()}.`;
+}
+
+async function sendChat() {
+  if (streaming) return;
+  const text = chatInput.value.trim();
+  if (!text) return;
+  if (!ai.key) { openView("settings"); setTimeout(() => $("#setKey").focus(), 320); return; }
+
+  ai.history.push({ role: "user", content: text });
+  save(K.ai, ai);
+  chatInput.value = "";
+  autoGrow();
+
+  if (chatLog.querySelector(".setup-card")) renderChat();
+  else chatLog.appendChild(bubble("user", text));
+
+  const out = bubble("bot", "");
+  out.innerHTML = `<span class="typing"><span></span><span></span><span></span></span>`;
+  chatLog.appendChild(out);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
+  streaming = true;
+  abortCtl = new AbortController();
+  $("#chatSend").title = "Stop";
+
+  const body = {
+    model: ai.model,
+    max_tokens: 2048,
+    stream: true,
+    system: systemPrompt(),
+    messages: ai.history.map(m => ({ role: m.role, content: m.content }))
+  };
+  // Haiku doesn't accept the effort parameter; the 5-series models do.
+  if (ai.model !== "claude-haiku-4-5") body.output_config = { effort: "low" };
+
+  let answer = "";
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      signal: abortCtl.signal,
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": ai.key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const raw = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try { msg = JSON.parse(raw).error?.message || msg; } catch (e) { /* keep the status */ }
+      throw new Error(msg);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let refused = false;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let cut;
+      while ((cut = buffer.indexOf("\n\n")) >= 0) {
+        const chunk = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+
+        for (const line of chunk.split("\n")) {
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload) continue;
+          let ev;
+          try { ev = JSON.parse(payload); } catch (e) { continue; }
+
+          if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta") {
+            answer += ev.delta.text;
+            out.innerHTML = renderMarkdown(answer);
+            chatLog.scrollTop = chatLog.scrollHeight;
+          } else if (ev.type === "message_delta" && ev.delta?.stop_reason === "refusal") {
+            refused = true;
+          } else if (ev.type === "error") {
+            throw new Error(ev.error?.message || "Stream error");
+          }
+        }
+      }
+    }
+
+    if (refused && !answer) {
+      answer = "Claude declined that request. Try rephrasing it, or ask something else.";
+      out.innerHTML = renderMarkdown(answer);
+    }
+    if (!answer) {
+      answer = "(no response)";
+      out.innerHTML = renderMarkdown(answer);
+    }
+
+    ai.history.push({ role: "assistant", content: answer });
+    save(K.ai, ai);
+
+  } catch (err) {
+    if (err.name === "AbortError") {
+      if (answer) {
+        ai.history.push({ role: "assistant", content: answer });
+        save(K.ai, ai);
+      } else {
+        out.remove();
+        ai.history.pop();          // drop the user turn that never got an answer
+        save(K.ai, ai);
+      }
+    } else {
+      out.remove();
+      const e = document.createElement("div");
+      e.className = "msg err";
+      e.textContent = "⚠ " + err.message;
+      chatLog.appendChild(e);
+      ai.history.pop();
+      save(K.ai, ai);
+    }
+  } finally {
+    streaming = false;
+    abortCtl = null;
+    $("#chatSend").title = "Send (Enter)";
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+}
+
+/* ============================================================================
+   14. SETTINGS
+   ============================================================================ */
+$("#setName").value = profile.name || "";
+$("#setName").addEventListener("input", () => {
+  profile.name = $("#setName").value;
+  save(K.profile, profile);
+  applyProfile();
+});
+
+$("#setKey").value = ai.key || "";
+$("#setKey").addEventListener("change", () => {
+  ai.key = $("#setKey").value.trim();
+  save(K.ai, ai);
+  renderChat();
+});
+
+$("#setModel").value = ai.model;
+$("#setModel").addEventListener("change", () => { ai.model = $("#setModel").value; save(K.ai, ai); });
+
+$$("#themeSeg button").forEach(b => b.addEventListener("click", () => {
+  theme.mode = b.dataset.mode;
+  save(K.theme, theme);
+  applyTheme();
+}));
+
+(function buildSwatches() {
+  const wrap = $("#swatches");
+  ACCENTS.forEach(a => {
+    const s = document.createElement("div");
+    s.className = "swatch";
+    s.dataset.hex = a.hex;
+    s.title = a.name;
+    s.style.background = a.hex;
+    s.addEventListener("click", () => { theme.accent = a.hex; save(K.theme, theme); applyTheme(); });
+    wrap.appendChild(s);
+  });
+})();
+
+$("#btnExport").addEventListener("click", () => {
+  const dump = {};
+  Object.values(K).forEach(key => {
+    const raw = localStorage.getItem(key);
+    if (raw !== null) dump[key] = raw;
+  });
+  const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), data: dump }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `homepage-backup-${todayKey()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast("Backup downloaded");
+});
+
+$("#btnImport").addEventListener("click", () => $("#importFile").click());
+$("#importFile").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const parsed = JSON.parse(await file.text());
+    const data = parsed.data || parsed;
+    if (!data || typeof data !== "object") throw new Error("Unrecognised file");
+    if (!confirm("Replace the data in this browser with the contents of this backup?")) return;
+    Object.entries(data).forEach(([key, raw]) => {
+      if (Object.values(K).includes(key)) localStorage.setItem(key, raw);
+    });
+    location.reload();
+  } catch (err) {
+    showToast("Could not read that backup file");
+  } finally {
+    e.target.value = "";
   }
 });
-window.onload = () => {
-    render();
-    searchInput.focus();
-};
+
+// Additive only: puts back starter links you removed, never deletes anything.
+$("#btnRestoreDefaults").addEventListener("click", () => {
+  let added = 0;
+  Object.entries(DEFAULT_DATA).forEach(([section, list]) => {
+    if (!sites[section]) sites[section] = [];
+    list.forEach(def => {
+      if (!sites[section].some(s => s.url === def.url)) {
+        sites[section].push({ ...def });
+        added++;
+      }
+    });
+  });
+  persistSites();
+  renderBoard();
+  showToast(added ? `Restored ${added} starter link${added > 1 ? "s" : ""}` : "Nothing was missing");
+});
+
+/* ============================================================================
+   15. GLOBAL KEYS
+   ============================================================================ */
+document.addEventListener("keydown", e => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault(); searchInput.focus(); searchInput.select(); return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") {
+    e.preventDefault(); openView("ai"); return;
+  }
+  if (e.key === "/" && !typing) { e.preventDefault(); searchInput.focus(); return; }
+  if (e.key === "Escape") {
+    const open = $$(".overlay.open");
+    if (open.length) { open.forEach(o => o.classList.remove("open")); return; }
+    if ($("#panel").classList.contains("open")) { closePanel(); return; }
+  }
+});
+
+/* ============================================================================
+   16. BOOT
+   ============================================================================ */
+applyTheme();
+applyProfile();
+tickClock();
+setInterval(tickClock, 1000);
+setInterval(paintGreeting, 60000);
+renderBoard();
+renderTasks();
+renderChat();
+paintTimer();
+
+if (pomo.date === todayKey()) $("#pomoCount").textContent = pomo.count;
+
+window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+  if (theme.mode === "auto") applyTheme();
+});
+
+window.addEventListener("load", () => searchInput.focus());
 </script>
 </body>
 </html>
