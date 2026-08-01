@@ -392,6 +392,48 @@
     border: 1px dashed var(--line); border-radius: var(--radius);
   }
 
+  /* --- Daily fact --- */
+  .fact-card {
+    position: relative;
+    padding: 20px 22px;
+    margin-bottom: 34px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--accent) 11%, transparent), transparent 60%),
+      var(--surface);
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+  }
+  .fact-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(var(--accent), transparent);
+  }
+
+  .fact-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .fact-tag {
+    font-size: 10.5px; font-weight: 750; letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .fact-streak { font-size: 11.5px; color: var(--faint); margin-left: auto; }
+
+  .fact-text {
+    font-family: var(--serif);
+    font-size: clamp(16px, 1.9vw, 21px);
+    line-height: 1.55;
+    margin: 0 0 18px;
+    max-width: 74ch;
+  }
+
+  .fact-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fact-actions .btn { padding: 8px 13px; font-size: 12.5px; }
+
+  .fact-card.collapsed .fact-body { display: none; }
+  .fact-card.collapsed { padding-bottom: 16px; }
+  .fact-card.collapsed .fact-top { margin-bottom: 0; }
+  #factCollapse { transition: transform 0.2s; }
+  .fact-card.collapsed #factCollapse { transform: rotate(-90deg); }
+
   /* ============================================================
      DOCK + PANEL
      ============================================================ */
@@ -639,6 +681,8 @@
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .btn.primary:hover { filter: brightness(1.12); }
   .btn.ghost { background: none; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn:disabled:hover { background: var(--surface); border-color: var(--line); filter: none; }
   .btn.danger { color: #ff8a8d; border-color: rgba(229,72,77,0.35); }
   .btn.danger:hover { background: rgba(229,72,77,0.14); }
   .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -841,6 +885,24 @@
     </select>
   </div>
 
+  <!-- ============ DAILY FACT ============ -->
+  <section class="fact-card" id="factCard">
+    <div class="fact-top">
+      <span class="fact-tag" id="factTag">—</span>
+      <span class="fact-streak" id="factStreak"></span>
+      <button class="mini-btn" id="factCollapse" title="Collapse">▾</button>
+    </div>
+    <div class="fact-body">
+      <p class="fact-text" id="factText">—</p>
+      <div class="fact-actions">
+        <button class="btn primary" id="factLearned">Got it</button>
+        <button class="btn" id="factExplain">Explain with Claude</button>
+        <button class="btn ghost" id="factMore">Read more</button>
+        <button class="btn ghost" id="factNext">Another</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ SECTIONS ============ -->
   <div id="board"></div>
 </div>
@@ -972,6 +1034,18 @@
         <div class="swatches" id="swatches"></div>
       </div>
 
+      <div class="field">
+        <label>Daily fact</label>
+        <div class="seg" id="factSeg">
+          <button data-hidden="0">Show</button>
+          <button data-hidden="1">Hide</button>
+        </div>
+        <div class="hint">
+          One fact a day from a built-in library of <span id="factTotal">0</span>, rotating by date.
+          Works offline — no key needed.
+        </div>
+      </div>
+
       <div class="divider"></div>
 
       <div class="field">
@@ -1094,7 +1168,8 @@ const K = {
   focus:   "hp.focus",
   engine:  "hp.engine",
   geo:     "hp.geo",
-  pomo:    "hp.pomo"
+  pomo:    "hp.pomo",
+  facts:   "hp.facts"
 };
 
 function load(key, fallback) {
@@ -1155,6 +1230,7 @@ let icons   = load(K.icons,   {});
 let engine  = load(K.engine,  "google");
 let geo     = load(K.geo,     null);
 let pomo    = load(K.pomo,    { date: "", count: 0 });
+let facts   = load(K.facts,   { seed: null, learnedLast: "", streak: 0, count: 0, collapsed: false, hidden: false });
 
 const $  = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -1281,7 +1357,10 @@ document.addEventListener("click", () => {
 /* ============================================================================
    4. FOCUS LINE  (resets itself each day)
    ============================================================================ */
-const todayKey = () => new Date().toISOString().slice(0, 10);
+// Local date, not UTC — otherwise "today" would roll over at the wrong hour.
+const dayKeyOf = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const todayKey = () => dayKeyOf(new Date());
 
 (function initFocus() {
   const stored = load(K.focus, { date: "", text: "" });
@@ -1290,6 +1369,164 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 
 $("#focusInput").addEventListener("input", () => {
   save(K.focus, { date: todayKey(), text: $("#focusInput").value });
+});
+
+/* ============================================================================
+   4b. DAILY FACT
+   A curated offline library so this works with no API key and no network.
+   `c` = category, `k` = search term for "Read more", `t` = the fact.
+   ============================================================================ */
+const FACTS = [
+  { c: "Computing", k: "software bug etymology", t: "The word 'bug' predates computers — engineers used it for hardware faults in the 1800s. In 1947 Grace Hopper's team taped an actual moth into a logbook beside the note 'first actual case of bug being found'." },
+  { c: "Computing", k: "binary search algorithm", t: "Binary search was described in 1946, but according to Knuth the first published version that handled every edge case correctly didn't appear until 1962. Simple ideas are surprisingly hard to write correctly." },
+  { c: "Computing", k: "hash flooding attack", t: "A hash table lookup is O(1) on average but O(n) at worst. That's why languages randomize their hash seeds: without it, an attacker can craft keys that all collide and stall your server." },
+  { c: "Networking", k: "TCP three-way handshake", t: "TCP's three-way handshake isn't just a greeting — it exists so both sides agree on each other's starting sequence numbers before any data flows." },
+  { c: "Computing", k: "Kubernetes name origin", t: "The '8' in 'k8s' is a letter count: K, then the eight middle letters of 'Kubernetes', then s. The same trick gives i18n for internationalization." },
+  { c: "Computing", k: "UTF-8 history", t: "UTF-8 was sketched out on a diner placemat in New Jersey by Ken Thompson and Rob Pike in 1992. It now encodes the overwhelming majority of the web." },
+  { c: "Databases", k: "database index write amplification", t: "Every index you add speeds up reads and slows down writes, because each insert or update has to modify every index on that table as well as the row itself." },
+  { c: "Computing", k: "Ada Lovelace first algorithm", t: "Ada Lovelace's 1843 notes on Babbage's Analytical Engine contain what's generally considered the first published computer algorithm — a method for computing Bernoulli numbers." },
+  { c: "Computing", k: "null reference billion dollar mistake", t: "Tony Hoare introduced the null reference in 1965 and later called it his 'billion-dollar mistake', because of the decades of crashes and vulnerabilities it caused." },
+  { c: "Computing", k: "REST Roy Fielding dissertation", t: "REST wasn't defined by a standards body. It came from Roy Fielding's 2000 PhD dissertation, which described an architectural style rather than a protocol." },
+  { c: "Computing", k: "git object storage snapshots", t: "Git stores full snapshots of file contents, not diffs. The diffs you read in a code review are computed on demand by comparing two snapshots." },
+  { c: "Computing", k: "HTTP 418 teapot", t: "HTTP status code 418, 'I'm a teapot', comes from an April Fools' RFC published in 1998. Several real servers and libraries implement it anyway." },
+  { c: "Hardware", k: "SSD write amplification", t: "An SSD gets slower as it fills up. Flash can only be erased in large blocks, so with little free space the drive must shuffle and erase existing data before it can write anything new." },
+  { c: "Computing", k: "Moore's law", t: "Moore's Law was never a law of physics — it was an observation Gordon Moore published in a 1965 trade magazine article, which then became an industry planning target." },
+  { c: "Computing", k: "QWERTY keyboard layout history", t: "QWERTY was designed around the mechanics of 1870s typewriters. The popular story that it deliberately slowed typists to prevent jams is disputed by historians." },
+  { c: "Computing", k: "cache invalidation naming things", t: "The old joke holds up: there are two hard problems in computer science — cache invalidation, naming things, and off-by-one errors." },
+
+  { c: "Space", k: "Venus rotation period", t: "A day on Venus is longer than its year. It takes about 243 Earth days to spin once, but only about 225 to orbit the Sun." },
+  { c: "Space", k: "solar system mass distribution", t: "The Sun holds about 99.8% of all the mass in the solar system. Everything else — every planet, moon, asteroid and comet — is a rounding error." },
+  { c: "Space", k: "neutron star density", t: "Neutron star material is so dense that a teaspoon of it would weigh roughly a billion tonnes on Earth." },
+  { c: "Space", k: "speed of light sunlight travel time", t: "Sunlight takes about 8 minutes 20 seconds to reach Earth. You never see the Sun as it is now, only as it was." },
+  { c: "Space", k: "Saturn density water", t: "Saturn is less dense than water. Given a bathtub big enough, it would float." },
+  { c: "Space", k: "Olympus Mons", t: "Olympus Mons on Mars rises about two and a half times the height of Everest, and it's so wide that standing on it you couldn't see its edges — the slope would curve away below the horizon." },
+  { c: "Space", k: "Voyager 1", t: "Voyager 1, launched in 1977, is the most distant human-made object. It still returns data using a transmitter weaker than a typical light bulb." },
+  { c: "Space", k: "sound in a vacuum", t: "Sound needs a medium to travel through, so space is silent. The 'sounds' of planets you hear in documentaries are radio emissions shifted into the audible range." },
+
+  { c: "Biology", k: "stomach lining renewal", t: "Your stomach lining renews itself every few days. It has to — the acid it contains would otherwise digest the stomach itself." },
+  { c: "Biology", k: "human microbiome cell ratio", t: "Textbooks long claimed bacteria outnumber your own cells ten to one. A careful 2016 re-estimate put the ratio closer to 1.3 to 1." },
+  { c: "Biology", k: "optic disc blind spot", t: "Each eye has a blind spot where the optic nerve leaves the retina. You never notice it because your brain quietly invents plausible content to fill the hole." },
+  { c: "Biology", k: "infant bones fusion", t: "Babies are born with around 300 bones. Adults have 206 — many fuse together during growth, including the plates of the skull." },
+  { c: "Biology", k: "brain energy consumption", t: "Your brain is about 2% of your body weight but consumes roughly 20% of your energy, whether you're solving equations or watching television." },
+  { c: "Biology", k: "glymphatic system sleep", t: "One reason sleep is non-negotiable: during it, the brain flushes metabolic waste through the glymphatic system far more effectively than while awake." },
+  { c: "Nature", k: "octopus hearts haemocyanin", t: "An octopus has three hearts and blue blood. Its oxygen carrier is copper-based haemocyanin rather than iron-based haemoglobin." },
+  { c: "Nature", k: "banana berry botany", t: "Botanically, bananas are berries and strawberries are not. A berry must develop from a single flower with one ovary — which strawberries don't." },
+  { c: "Nature", k: "mycorrhizal network", t: "Trees are linked underground by fungal networks that can move sugars and nutrients between plants, and appear to carry stress signals too." },
+  { c: "Nature", k: "African humid period green Sahara", t: "The Sahara was green as recently as about 6,000 years ago — grassland with lakes, hippos and human settlements. The shift to desert took only centuries." },
+  { c: "Nature", k: "Antarctica desert precipitation", t: "Antarctica is the largest desert on Earth. A desert is defined by how little precipitation it receives, not by heat or sand." },
+  { c: "Nature", k: "lightning temperature", t: "A lightning channel heats the surrounding air to roughly five times the temperature of the Sun's surface. That sudden expansion is the thunder you hear." },
+  { c: "Nature", k: "shark evolution older than trees", t: "Sharks are older than trees. Sharks appeared roughly 450 million years ago; the first true trees about 100 million years later." },
+  { c: "Nature", k: "water density anomaly ice floats", t: "Water is unusual: it expands as it freezes. That's why ice floats, why lakes freeze top-down, and why pipes burst in winter." },
+  { c: "Nature", k: "honey does not spoil", t: "Honey doesn't spoil. Its low water content and acidity make it hostile to microbes — jars found in ancient Egyptian tombs were still edible." },
+
+  { c: "History", k: "Cleopatra timeline pyramids", t: "Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid of Giza." },
+  { c: "History", k: "University of Oxford founding", t: "Teaching began at Oxford around 1096. The university was already centuries old before the Aztec Empire was founded in 1325." },
+  { c: "History", k: "Anglo-Zanzibar War", t: "The shortest recorded war lasted under 45 minutes: the Anglo-Zanzibar War of 1896." },
+  { c: "History", k: "Napoleon height myth", t: "Napoleon wasn't unusually short. He was recorded in French inches, which were longer than English ones — the conversion, plus British propaganda, shrank him." },
+  { c: "History", k: "Roman concrete self healing lime clasts", t: "Roman seawater concrete grows stronger over time. Researchers recently linked this to lime clasts in the mix that let cracks reseal themselves." },
+  { c: "History", k: "viking horned helmet myth", t: "Vikings didn't wear horned helmets. The image was largely invented by a costume designer for a 19th-century production of Wagner's Ring cycle." },
+
+  { c: "Language", k: "word robot origin RUR", t: "'Robot' entered English from the 1920 Czech play R.U.R. It comes from 'robota', meaning forced labour — the play's robots revolt against their makers." },
+  { c: "Language", k: "pangram", t: "A pangram is a sentence using every letter of the alphabet. 'The quick brown fox jumps over the lazy dog' is the famous one, at 35 letters." },
+  { c: "Language", k: "Japanese writing systems", t: "Japanese mixes three writing systems in ordinary sentences: kanji for meaning, hiragana for grammar, and katakana mainly for loanwords." },
+  { c: "Language", k: "English word set definitions", t: "The English word 'set' has one of the longest entries in the dictionary, with hundreds of distinct senses across its noun and verb forms." },
+
+  { c: "Maths", k: "birthday problem", t: "In a room of 23 people, there's about a 50% chance two share a birthday. At 70 people it's over 99.9%. Collisions arrive far sooner than intuition suggests." },
+  { c: "Maths", k: "52 factorial card shuffles", t: "There are more ways to shuffle a deck of 52 cards than there are atoms making up the Earth. Any well-shuffled deck has almost certainly never existed before." },
+  { c: "Maths", k: "Monty Hall problem", t: "In the Monty Hall problem, switching doors raises your odds from 1/3 to 2/3. The host's choice isn't random, and that leaks information." },
+  { c: "Maths", k: "four color theorem", t: "Any map can be coloured with just four colours so no two neighbours match. It was proved in 1976 — the first major theorem to depend on computer assistance." },
+  { c: "Maths", k: "pi digits NASA navigation", t: "Pi has been computed to trillions of digits, but NASA uses around 15 for interplanetary navigation. That's enough to place a spacecraft within centimetres over billions of kilometres." },
+  { c: "Maths", k: "history of zero", t: "Zero as a number in its own right — not just a placeholder — was formalized in India and reached Europe only through Arabic mathematics, centuries later." },
+
+  { c: "Learning", k: "spaced repetition", t: "Spaced repetition beats cramming decisively. Reviewing material at widening intervals produces far stronger long-term recall for the same total study time." },
+  { c: "Learning", k: "testing effect retrieval practice", t: "Testing yourself teaches you more than rereading does. The effort of retrieval is what strengthens the memory — which is why rereading feels easy but works poorly." },
+  { c: "Learning", k: "protege effect learning by teaching", t: "Explaining something to someone else is one of the most effective ways to learn it, because it exposes the gaps you'd otherwise skim over." },
+  { c: "Learning", k: "Zeigarnik effect", t: "The Zeigarnik effect: unfinished tasks occupy memory more insistently than finished ones. Starting a task badly still quiets the mind more than not starting it." },
+  { c: "Learning", k: "curse of knowledge", t: "The curse of knowledge — once you understand something, you can't reconstruct not understanding it — is why experts write documentation that beginners can't follow." },
+  { c: "Learning", k: "sleep memory consolidation", t: "Memory consolidates during sleep, so an all-nighter usually costs more than it buys. Sleeping on new material measurably improves recall the next day." },
+
+  { c: "Physics", k: "glass is not a liquid", t: "Glass is not a slow-flowing liquid. Old cathedral windows are thicker at the bottom because of how the panes were made, not because they've sagged over centuries." },
+  { c: "Physics", k: "Mpemba effect", t: "Under some conditions hot water freezes faster than cold — the Mpemba effect. It's been reported since Aristotle and the mechanism is still argued over." },
+  { c: "Physics", k: "microwave oven dielectric heating", t: "A microwave heats food by making water molecules flip back and forth billions of times a second. Genuinely dry material barely heats at all." },
+  { c: "Physics", k: "aluminium once more valuable than gold", t: "Aluminium was once more precious than gold, despite being abundant, because separating it from ore was so hard. Cheap electrolysis collapsed the price within a few years." },
+  { c: "Physics", k: "kilogram redefinition Planck constant", t: "Until 2019 the kilogram was defined by a metal cylinder in a vault near Paris. It's now defined through the Planck constant, so it can be reproduced in any suitable lab." },
+  { c: "Physics", k: "stainless steel passivation chromium oxide", t: "Stainless steel resists rust because chromium forms an invisible oxide layer on the surface. Scratch it and the layer reforms immediately in air." },
+  { c: "Physics", k: "active noise cancellation", t: "Noise-cancelling headphones sample incoming sound and play its inverse, so the two waves cancel. It works best on steady low drones like engine noise." },
+  { c: "Physics", k: "GPS relativity correction", t: "GPS satellites must correct for relativity. Their clocks run faster than clocks on the ground, and without the adjustment positions would drift by kilometres a day." },
+  { c: "Physics", k: "bubble wrap invention", t: "Bubble wrap was invented in 1957 as textured wallpaper. When that failed, its makers tried selling it as greenhouse insulation before packaging finally stuck." },
+  { c: "Computing", k: "kibibyte binary prefix", t: "A kilobyte is 1,000 bytes; a kibibyte is 1,024. The two were conflated for decades, which is why a '500 GB' drive shows up as roughly 465 GB in your file manager." }
+];
+
+// A per-install seed means two people don't see the same fact on the same day.
+if (facts.seed === null) {
+  facts.seed = Math.floor(Math.random() * FACTS.length);
+  save(K.facts, facts);
+}
+
+const daysSinceEpoch = () => {
+  const d = new Date();
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+};
+
+const dailyFactIndex = () => (daysSinceEpoch() + facts.seed) % FACTS.length;
+let factIdx = dailyFactIndex();
+
+function paintFact() {
+  $("#factCard").style.display = facts.hidden ? "none" : "";
+  if (facts.hidden) return;
+
+  const f = FACTS[factIdx];
+  $("#factTag").textContent = f.c;
+  $("#factText").textContent = f.t;
+
+  const learnedToday = facts.learnedLast === todayKey();
+  const btn = $("#factLearned");
+  btn.textContent = learnedToday ? "Learned ✓" : "Got it";
+  btn.disabled = learnedToday;
+
+  const bits = [];
+  if (facts.streak > 0) bits.push(`🔥 ${facts.streak}-day streak`);
+  if (facts.count > 0) bits.push(`${facts.count} learned`);
+  $("#factStreak").textContent = bits.join(" · ");
+
+  $("#factCard").classList.toggle("collapsed", !!facts.collapsed);
+}
+
+$("#factLearned").addEventListener("click", () => {
+  const today = todayKey();
+  if (facts.learnedLast === today) return;
+
+  const yesterday = dayKeyOf(new Date(Date.now() - 86400000));
+  facts.streak = facts.learnedLast === yesterday ? facts.streak + 1 : 1;
+  facts.learnedLast = today;
+  facts.count++;
+  save(K.facts, facts);
+  paintFact();
+  showToast(facts.streak > 1 ? `Nice — ${facts.streak} days in a row` : "Logged. See you tomorrow.");
+});
+
+$("#factNext").addEventListener("click", () => {
+  factIdx = (factIdx + 1) % FACTS.length;
+  paintFact();
+});
+
+$("#factMore").addEventListener("click", () => {
+  const f = FACTS[factIdx];
+  window.open("https://en.wikipedia.org/w/index.php?search=" + encodeURIComponent(f.k), "_blank", "noopener");
+});
+
+$("#factExplain").addEventListener("click", () => {
+  const f = FACTS[factIdx];
+  openView("ai");
+  chatInput.value = `Go deeper on this, and give me one concrete example:\n\n"${f.t}"`;
+  autoGrow();
+  setTimeout(() => chatInput.focus(), 320);
+});
+
+$("#factCollapse").addEventListener("click", () => {
+  facts.collapsed = !facts.collapsed;
+  save(K.facts, facts);
+  paintFact();
 });
 
 /* ============================================================================
@@ -2321,6 +2558,17 @@ $$("#themeSeg button").forEach(b => b.addEventListener("click", () => {
   applyTheme();
 }));
 
+$("#factTotal").textContent = FACTS.length;
+function syncFactToggle() {
+  $$("#factSeg button").forEach(b => b.classList.toggle("on", (b.dataset.hidden === "1") === !!facts.hidden));
+}
+$$("#factSeg button").forEach(b => b.addEventListener("click", () => {
+  facts.hidden = b.dataset.hidden === "1";
+  save(K.facts, facts);
+  syncFactToggle();
+  paintFact();
+}));
+
 (function buildSwatches() {
   const wrap = $("#swatches");
   ACCENTS.forEach(a => {
@@ -2418,6 +2666,8 @@ renderBoard();
 renderTasks();
 renderChat();
 syncModeControls();
+paintFact();
+syncFactToggle();
 paintTimer();
 
 if (pomo.date === todayKey()) $("#pomoCount").textContent = pomo.count;
