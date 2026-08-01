@@ -561,6 +561,16 @@
   .typing span:nth-child(3) { animation-delay: 0.36s; }
   @keyframes blink { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
 
+  .mode-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 18px 10px;
+  }
+  .seg.mini { padding: 3px; }
+  .seg.mini button { padding: 6px 12px; font-size: 12px; }
+  .mode-note { font-size: 11.5px; color: var(--faint); line-height: 1.4; }
+  .mode-note a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .mode-note a:hover { text-decoration: underline; }
+
   .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 18px 10px; }
   .chip {
     font-size: 12px; padding: 6px 11px; border-radius: 999px;
@@ -870,6 +880,13 @@
   <!-- AI view has its own flex layout, so it lives outside .panel-body -->
   <div class="ai-wrap panel-view" id="view-ai" style="flex:1;min-height:0">
     <div class="chat-log" id="chatLog"></div>
+    <div class="mode-row">
+      <div class="seg mini" id="aiModeSeg">
+        <button data-mode="subscription">claude.ai</button>
+        <button data-mode="api">API key</button>
+      </div>
+      <span class="mode-note" id="aiModeNote"></span>
+    </div>
     <div class="chips" id="chatChips">
       <button class="chip" data-p="plan">Plan my day</button>
       <button class="chip" data-p="notes">Summarize my notes</button>
@@ -958,11 +975,25 @@
       <div class="divider"></div>
 
       <div class="field">
+        <label>Claude panel mode</label>
+        <div class="seg" id="setModeSeg">
+          <button data-mode="subscription">claude.ai</button>
+          <button data-mode="api">API key</button>
+        </div>
+        <div class="hint">
+          <b>claude.ai</b> — free with your Pro/Max plan. The panel composes the prompt and opens it
+          in a claude.ai tab.<br>
+          <b>API key</b> — replies stream inline in the panel, billed to Anthropic API credits
+          (separate from a subscription).
+        </div>
+      </div>
+
+      <div class="field">
         <label>Claude API key</label>
         <input type="password" id="setKey" placeholder="sk-ant-…" autocomplete="off">
         <div class="hint">
-          Stored only in this browser's localStorage and sent straight to api.anthropic.com.
-          Never commit it to the repo.
+          Only needed for API mode. Stored in this browser's localStorage and sent straight to
+          api.anthropic.com. Never commit it to the repo.
         </div>
       </div>
       <div class="field">
@@ -1117,7 +1148,9 @@ if (!sites || typeof sites !== "object" || Array.isArray(sites)) {
 let profile = load(K.profile, { name: "" });
 let theme   = load(K.theme,   { mode: "dark", accent: "#ff6b4a" });
 let tasks   = load(K.tasks,   []);
-let ai      = load(K.ai,      { key: "", model: "claude-opus-5", history: [] });
+let ai      = load(K.ai,      { key: "", model: "claude-opus-5", history: [], mode: "subscription" });
+// "subscription" hands the prompt off to claude.ai; "api" streams inline with a key.
+if (ai.mode !== "api" && ai.mode !== "subscription") ai.mode = ai.key ? "api" : "subscription";
 let icons   = load(K.icons,   {});
 let engine  = load(K.engine,  "google");
 let geo     = load(K.geo,     null);
@@ -1923,15 +1956,100 @@ const chatInput = $("#chatInput");
 let streaming = false;
 let abortCtl = null;
 
+/* Copy without depending on the async clipboard API, which needs a secure
+   context and isn't available when the page is opened over file://. */
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  }
+  return Promise.resolve(legacyCopy(text));
+}
+function legacyCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch (e) { /* clipboard simply unavailable */ }
+  ta.remove();
+}
+
+const CLAUDE_WEB_LIMIT = 1800;   // keep the URL well inside browser limits
+
+function launchToClaude(text, target) {
+  copyText(text);
+  const encoded = encodeURIComponent(text);
+
+  if (target === "desktop") {
+    // Documented scheme: opens Claude Desktop with the prompt pre-filled.
+    const a = document.createElement("a");
+    a.href = "claude://claude.ai/new?q=" + encoded;
+    a.click();
+    return true;
+  }
+
+  // Long prompts go over as a clipboard paste rather than a giant URL.
+  const tooLong = encoded.length > CLAUDE_WEB_LIMIT;
+  window.open(tooLong ? "https://claude.ai/new" : "https://claude.ai/new?q=" + encoded, "_blank", "noopener");
+  return !tooLong;
+}
+
+function applyAiMode() {
+  // The panel and Settings both expose the toggle — keep them in lockstep.
+  $$("#aiModeSeg button, #setModeSeg button")
+    .forEach(b => b.classList.toggle("on", b.dataset.mode === ai.mode));
+
+  const note = $("#aiModeNote");
+  if (ai.mode === "subscription") {
+    note.innerHTML = `Uses your subscription · <a data-desktop>open in desktop app</a>`;
+    note.querySelector("[data-desktop]").addEventListener("click", () => {
+      const text = chatInput.value.trim();
+      if (!text) { showToast("Write a prompt first"); return; }
+      launchToClaude(text, "desktop");
+      showToast("Sent to Claude Desktop");
+    });
+    chatInput.placeholder = "Write a prompt, then send it to claude.ai…";
+    $("#chatSend").title = "Open in claude.ai";
+  } else {
+    note.textContent = ai.key ? "Billed to your API credits" : "Needs an API key in Settings";
+    chatInput.placeholder = "Ask Claude anything…";
+    $("#chatSend").title = "Send (Enter)";
+  }
+}
+
+$$("#aiModeSeg button").forEach(b => b.addEventListener("click", () => {
+  ai.mode = b.dataset.mode;
+  save(K.ai, ai);
+  applyAiMode();
+  renderChat();
+  chatInput.focus();
+}));
+
 function renderChat() {
   chatLog.innerHTML = "";
+  applyAiMode();
+
+  if (ai.mode === "subscription") {
+    const card = document.createElement("div");
+    card.className = "setup-card";
+    card.innerHTML = `
+      <h4>Using your Claude subscription</h4>
+      Write the prompt here — the quick actions below pull in your tasks and notes — then send it
+      to claude.ai in a new tab, where your Pro/Max plan applies. No API key and no cost.
+      <br><br>
+      The prompt is copied to your clipboard as well, so you can paste it if the page doesn't
+      pre-fill. Answers appear in that tab rather than in this panel.`;
+    chatLog.appendChild(card);
+    return;
+  }
 
   if (!ai.key) {
     const card = document.createElement("div");
     card.className = "setup-card";
     card.innerHTML = `
-      <h4>Connect Claude</h4>
-      This panel talks to the Anthropic API straight from your browser — nothing runs on a server.
+      <h4>Connect an API key</h4>
+      This mode streams replies inline, straight from your browser to the Anthropic API.
+      It bills to API credits, which are separate from a Pro/Max subscription.
       <ol>
         <li>Grab a key from <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a></li>
         <li>Paste it into Settings → Claude API key</li>
@@ -1940,7 +2058,6 @@ function renderChat() {
       never hard-code the key into the file itself.`;
     const btn = document.createElement("button");
     btn.className = "btn primary";
-    btn.style.marginTop = "14px";
     btn.textContent = "Open settings";
     btn.addEventListener("click", () => { openView("settings"); setTimeout(() => $("#setKey").focus(), 320); });
     card.appendChild(btn);
@@ -2026,6 +2143,23 @@ async function sendChat() {
   if (streaming) return;
   const text = chatInput.value.trim();
   if (!text) return;
+
+  // Subscription mode: hand the prompt to claude.ai instead of calling the API.
+  if (ai.mode === "subscription") {
+    const prefilled = launchToClaude(text, "web");
+    chatLog.appendChild(bubble("user", text));
+    const note = document.createElement("div");
+    note.className = "msg bot";
+    note.textContent = prefilled
+      ? "Opened in claude.ai — the prompt should be waiting there, and it's on your clipboard too."
+      : "That prompt was long, so claude.ai opened empty — paste it with Ctrl+V.";
+    chatLog.appendChild(note);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    chatInput.value = "";
+    autoGrow();
+    return;
+  }
+
   if (!ai.key) { openView("settings"); setTimeout(() => $("#setKey").focus(), 320); return; }
 
   ai.history.push({ role: "user", content: text });
@@ -2163,9 +2297,20 @@ $("#setName").addEventListener("input", () => {
 $("#setKey").value = ai.key || "";
 $("#setKey").addEventListener("change", () => {
   ai.key = $("#setKey").value.trim();
+  if (ai.key) ai.mode = "api";      // pasting a key is a clear signal of intent
   save(K.ai, ai);
+  syncModeControls();
   renderChat();
 });
+
+function syncModeControls() { applyAiMode(); }
+
+$$("#setModeSeg button").forEach(b => b.addEventListener("click", () => {
+  ai.mode = b.dataset.mode;
+  save(K.ai, ai);
+  syncModeControls();
+  renderChat();
+}));
 
 $("#setModel").value = ai.model;
 $("#setModel").addEventListener("change", () => { ai.model = $("#setModel").value; save(K.ai, ai); });
@@ -2272,6 +2417,7 @@ setInterval(paintGreeting, 60000);
 renderBoard();
 renderTasks();
 renderChat();
+syncModeControls();
 paintTimer();
 
 if (pomo.date === todayKey()) $("#pomoCount").textContent = pomo.count;
